@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="spcd-dialog.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
     /* Variables especificas del modulo operativo (las comunes vienen de spcd-theme.css) */
     :root {
@@ -768,6 +769,25 @@
     <div id="alerts-expiry" style="display:none"><div id="alerts-expiry-list"></div><span id="alerts-expiry-count"></span></div>
     <div id="alerts-stock" style="display:none"><div id="alerts-stock-list"></div><span id="alerts-stock-count"></span></div>
     <div id="recent-movs" style="display:none"></div>
+
+    <!-- Estadisticas de PEDIDOS (visible admin/mixto) -->
+    <div class="pedidos-stats" id="pedidos-stats" style="display:none; margin-top:28px;">
+      <div class="dash-title" style="font-size:14px; letter-spacing:3px;">ESTAD&Iacute;STICAS DE PEDIDOS</div>
+      <div class="dash-sub" style="margin-bottom:16px">\u00daltimos 30 d\u00edas</div>
+      <div class="stats-grid" id="pedidos-stats-grid">
+        <div class="stat-card total"><div class="stat-val" id="ps-total">-</div><div class="stat-label">Pedidos 30d</div></div>
+        <div class="stat-card bajo"><div class="stat-val" id="ps-pendientes">-</div><div class="stat-label">Pendientes ahora</div></div>
+        <div class="stat-card ok"><div class="stat-val" id="ps-tiempo">-</div><div class="stat-label">Aprob. promedio</div></div>
+        <div class="stat-card lotes"><div class="stat-val" id="ps-servicio" style="font-size:18px; font-family:Inter,sans-serif; font-weight:700;">-</div><div class="stat-label">Servicio top</div></div>
+        <div class="stat-card critico"><div class="stat-val" id="ps-producto" style="font-size:14px; font-family:Inter,sans-serif; font-weight:700;">-</div><div class="stat-label">Producto top</div></div>
+      </div>
+      <div style="background:rgba(15,23,42,.45); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:16px;">
+        <div style="font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:10px;">Pedidos por d\u00eda</div>
+        <div style="position:relative; height:180px;">
+          <canvas id="ps-chart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== TAB: STOCK ===== -->
@@ -931,6 +951,36 @@
         <button class="btn-submit" onclick="showNewPedido()" id="btn-new-pedido">&#x2B; Nuevo Pedido</button>
       </div>
     </div>
+    <!-- Filtros -->
+    <div class="pedidos-filtros" id="pedidos-filtros">
+      <div class="ped-filtros-row">
+        <div class="ped-filtro-grp">
+          <label>Estado</label>
+          <select id="ped-filtro-estado" onchange="aplicarFiltrosPedidos()">
+            <option value="">Todos</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="APROBADO">Aprobado</option>
+            <option value="ENTREGADO">Entregado</option>
+            <option value="RECHAZADO">Rechazado</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp">
+          <label>Urgencia</label>
+          <select id="ped-filtro-urgencia" onchange="aplicarFiltrosPedidos()">
+            <option value="">Todas</option>
+            <option value="NORMAL">Normal</option>
+            <option value="URGENTE">Urgente</option>
+            <option value="EMERGENCIA">Emergencia</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp ped-filtro-grp-grow">
+          <label>Buscar (servicio/solicitante)</label>
+          <input type="text" id="ped-filtro-busca" placeholder="Ej: Resonancia, AWALKER..." oninput="aplicarFiltrosPedidos()"/>
+        </div>
+        <button class="btn-secondary" onclick="resetFiltrosPedidos()" style="padding:8px 14px; font-size:11px; align-self:flex-end;">Limpiar</button>
+      </div>
+      <div id="ped-filtro-resumen" style="font-size:10px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:6px;"></div>
+    </div>
     <div id="pedidos-list"><div class="spinner"></div></div>
   </div>
 
@@ -939,6 +989,34 @@
     <div class="section-header">
       <h2>BANDEJA DE APROBACI&Oacute;N</h2>
     </div>
+    <!-- Filtros bandeja -->
+    <div class="pedidos-filtros" id="bandeja-filtros">
+      <div class="ped-filtros-row">
+        <div class="ped-filtro-grp">
+          <label>Estado</label>
+          <select id="band-filtro-estado" onchange="aplicarFiltrosBandeja()">
+            <option value="">Accionables (pendiente+aprobado)</option>
+            <option value="PENDIENTE">Solo pendientes</option>
+            <option value="APROBADO">Solo aprobados</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp">
+          <label>Urgencia</label>
+          <select id="band-filtro-urgencia" onchange="aplicarFiltrosBandeja()">
+            <option value="">Todas</option>
+            <option value="NORMAL">Normal</option>
+            <option value="URGENTE">Urgente</option>
+            <option value="EMERGENCIA">Emergencia</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp ped-filtro-grp-grow">
+          <label>Buscar (servicio/solicitante)</label>
+          <input type="text" id="band-filtro-busca" placeholder="Ej: Resonancia, AWALKER..." oninput="aplicarFiltrosBandeja()"/>
+        </div>
+        <button class="btn-secondary" onclick="resetFiltrosBandeja()" style="padding:8px 14px; font-size:11px; align-self:flex-end;">Limpiar</button>
+      </div>
+      <div id="band-filtro-resumen" style="font-size:10px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:6px;"></div>
+    </div>
     <div id="bandeja-list"><div class="spinner"></div></div>
   </div>
 </div>
@@ -946,10 +1024,15 @@
 <!-- ==================== NEW PEDIDO MODAL ==================== -->
 <div class="modal-overlay" id="modal-pedido">
   <div class="modal-box" style="max-width:500px">
-    <h3 style="color:var(--sky)">&#x1F4E6; Nuevo Pedido de Insumos</h3>
-    <p>Seleccion&aacute; los productos y cantidades que necesit&aacute;s.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div>
+        <h3 style="color:var(--sky); margin:0">&#x1F4E6; Nuevo Pedido de Insumos</h3>
+        <p style="margin:4px 0 0 0">Seleccion&aacute; los productos y cantidades que necesit&aacute;s.</p>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-cargar-plantilla" onclick="cargarPlantillaPedido()" style="display:none; padding:7px 12px; font-size:10px; border-color:rgba(34,219,174,.4); color:var(--cyan);">&#x2B50; Usar pedido habitual</button>
+    </div>
 
-    <div class="form-group">
+    <div class="form-group" style="margin-top:16px">
       <label>Servicio</label>
       <input type="text" id="ped-servicio" placeholder="Ej: Resonancia, Tomograf&iacute;a..."/>
     </div>
@@ -1249,7 +1332,15 @@ function applyPermissions() {
   if (btnShareLink) {
     btnShareLink.style.display = (rol === 'admin' || rol === 'mixto') ? 'inline-flex' : 'none';
   }
+
+  // Panel de estad\u00edsticas de pedidos (admin + mixto)
+  const pedidosStats = document.getElementById('pedidos-stats');
+  if (pedidosStats) {
+    pedidosStats.style.display = (rol === 'admin' || rol === 'mixto') ? 'block' : 'none';
+  }
 }
+
+const PAGE_TITLE_BASE = 'M\u00f3dulo Operativo \u00b7 SP Control Data';
 
 function updateBandejaBadge(count) {
   const tab = document.querySelector('[data-tab="bandeja"]');
@@ -1263,6 +1354,11 @@ function updateBandejaBadge(count) {
     badge.textContent = count;
     tab.appendChild(badge);
   }
+  // Actualizar el title del navegador para que se vea en la pesta\u00f1a
+  // incluso cuando el usuario est\u00e1 en otra solapa.
+  document.title = count > 0
+    ? `(${count}) ${PAGE_TITLE_BASE}`
+    : PAGE_TITLE_BASE;
 }
 
 // ============================================================
@@ -1289,24 +1385,94 @@ async function loadMovimientos() {
   } catch(e) { console.error('loadMovimientos error:', e); }
 }
 
+// Cache en memoria para aplicar filtros sin volver a consultar la DB
+let _pedidosCache = [];
+let _bandejaCache = [];
+
 async function loadPedidos() {
   try {
     if (currentUser.rol === 'solicitante') {
-      const peds = (await sbQuery('v_pedidos', `select=*&solicitante=eq.${currentUser.username}&order=fecha.desc`)).map(parsePedidoMeta);
-      renderPedidos(peds, 'pedidos-list');
+      _pedidosCache = (await sbQuery('v_pedidos', `select=*&solicitante=eq.${currentUser.username}&order=fecha.desc`)).map(parsePedidoMeta);
+      aplicarFiltrosPedidos();
     } else if (currentUser.rol === 'admin') {
       // Bandeja = pendientes (aprobar) + aprobados (entregar)
-      const accionables = (await sbQuery('v_pedidos', 'select=*&estado=in.(PENDIENTE,APROBADO)&order=fecha.desc')).map(parsePedidoMeta);
-      renderBandeja(accionables, 'bandeja-list');
-      // Badge cuenta solo los que necesitan acci\u00f3n (PENDIENTE + APROBADO)
-      updateBandejaBadge(accionables.length);
-      const all = (await sbQuery('v_pedidos', 'select=*&order=fecha.desc&limit=30')).map(parsePedidoMeta);
-      renderPedidos(all, 'pedidos-list');
+      _bandejaCache = (await sbQuery('v_pedidos', 'select=*&estado=in.(PENDIENTE,APROBADO)&order=fecha.desc')).map(parsePedidoMeta);
+      aplicarFiltrosBandeja();
+      // Badge cuenta los pendientes + aprobados completos (sin filtrar)
+      updateBandejaBadge(_bandejaCache.length);
+      _pedidosCache = (await sbQuery('v_pedidos', 'select=*&order=fecha.desc&limit=30')).map(parsePedidoMeta);
+      aplicarFiltrosPedidos();
     } else if (currentUser.rol === 'mixto') {
-      const peds = (await sbQuery('v_pedidos', `select=*&solicitante=eq.${currentUser.username}&order=fecha.desc`)).map(parsePedidoMeta);
-      renderPedidos(peds, 'pedidos-list');
+      _pedidosCache = (await sbQuery('v_pedidos', `select=*&solicitante=eq.${currentUser.username}&order=fecha.desc`)).map(parsePedidoMeta);
+      aplicarFiltrosPedidos();
     }
   } catch(e) { console.error('loadPedidos error:', e); }
+}
+
+// ── FILTROS LISTA MIS PEDIDOS ────────────────────────────
+function aplicarFiltrosPedidos() {
+  const estado    = (document.getElementById('ped-filtro-estado')?.value || '').trim();
+  const urgencia  = (document.getElementById('ped-filtro-urgencia')?.value || '').trim();
+  const busca     = (document.getElementById('ped-filtro-busca')?.value || '').trim().toLowerCase();
+
+  let filtrados = _pedidosCache;
+  if (estado)   filtrados = filtrados.filter(p => p.estado === estado);
+  if (urgencia) filtrados = filtrados.filter(p => p.urgencia === urgencia);
+  if (busca) {
+    filtrados = filtrados.filter(p =>
+      (p.servicio || '').toLowerCase().includes(busca) ||
+      (p.solicitante_nombre || '').toLowerCase().includes(busca) ||
+      (p.solicitante || '').toLowerCase().includes(busca)
+    );
+  }
+
+  renderPedidos(filtrados, 'pedidos-list');
+  const resumen = document.getElementById('ped-filtro-resumen');
+  if (resumen) {
+    resumen.textContent = (filtrados.length !== _pedidosCache.length)
+      ? `Mostrando ${filtrados.length} de ${_pedidosCache.length}`
+      : `${_pedidosCache.length} pedido(s)`;
+  }
+}
+
+function resetFiltrosPedidos() {
+  const e = document.getElementById('ped-filtro-estado');    if (e) e.value = '';
+  const u = document.getElementById('ped-filtro-urgencia');  if (u) u.value = '';
+  const b = document.getElementById('ped-filtro-busca');     if (b) b.value = '';
+  aplicarFiltrosPedidos();
+}
+
+// ── FILTROS BANDEJA ───────────────────────────────────────
+function aplicarFiltrosBandeja() {
+  const estado    = (document.getElementById('band-filtro-estado')?.value || '').trim();
+  const urgencia  = (document.getElementById('band-filtro-urgencia')?.value || '').trim();
+  const busca     = (document.getElementById('band-filtro-busca')?.value || '').trim().toLowerCase();
+
+  let filtrados = _bandejaCache;
+  if (estado)   filtrados = filtrados.filter(p => p.estado === estado);
+  if (urgencia) filtrados = filtrados.filter(p => p.urgencia === urgencia);
+  if (busca) {
+    filtrados = filtrados.filter(p =>
+      (p.servicio || '').toLowerCase().includes(busca) ||
+      (p.solicitante_nombre || '').toLowerCase().includes(busca) ||
+      (p.solicitante || '').toLowerCase().includes(busca)
+    );
+  }
+
+  renderBandeja(filtrados, 'bandeja-list');
+  const resumen = document.getElementById('band-filtro-resumen');
+  if (resumen) {
+    resumen.textContent = (filtrados.length !== _bandejaCache.length)
+      ? `Mostrando ${filtrados.length} de ${_bandejaCache.length}`
+      : `${_bandejaCache.length} pedido(s) accionables`;
+  }
+}
+
+function resetFiltrosBandeja() {
+  const e = document.getElementById('band-filtro-estado');    if (e) e.value = '';
+  const u = document.getElementById('band-filtro-urgencia');  if (u) u.value = '';
+  const b = document.getElementById('band-filtro-busca');     if (b) b.value = '';
+  aplicarFiltrosBandeja();
 }
 
 // ============================================================
@@ -1338,6 +1504,128 @@ function renderDashboard() {
   renderStockTable();
   // Populate product select
   populateProductSelect();
+
+  // Estad\u00edsticas de pedidos (admin + mixto)
+  if (currentUser && ['admin','mixto'].includes(currentUser.rol)) {
+    renderPedidosStats().catch(e => console.warn('stats pedidos:', e));
+  }
+}
+
+// ============================================================
+// ESTAD\u00cdSTICAS DE PEDIDOS (dashboard panel)
+// ============================================================
+let _psChart = null;
+
+async function renderPedidosStats() {
+  try {
+    // Rango: \u00faltimos 30 d\u00edas
+    const hoy = new Date();
+    const hace30 = new Date(hoy.getTime() - 30 * 24 * 3600 * 1000);
+    const desdeIso = hace30.toISOString();
+
+    const peds = (await sbQuery('v_pedidos', `select=*&fecha=gte.${desdeIso}&order=fecha.desc`)).map(parsePedidoMeta);
+
+    // Numeros clave
+    const total      = peds.length;
+    const pendientes = peds.filter(p => p.estado === 'PENDIENTE').length;
+
+    // Tiempo promedio de aprobaci\u00f3n (en horas) entre fecha y fecha_aprobacion
+    const aprobadosConTiempo = peds.filter(p => p.fecha_aprobacion && p.fecha);
+    let tiempoProm = '-';
+    if (aprobadosConTiempo.length > 0) {
+      const suma = aprobadosConTiempo.reduce((acc, p) => {
+        const d1 = new Date(p.fecha).getTime();
+        const d2 = new Date(p.fecha_aprobacion).getTime();
+        return acc + Math.max(0, d2 - d1);
+      }, 0);
+      const promMs = suma / aprobadosConTiempo.length;
+      const horas  = promMs / 3600000;
+      tiempoProm = horas < 1
+        ? Math.round(horas * 60) + 'm'
+        : horas < 24 ? horas.toFixed(1) + 'h' : (horas / 24).toFixed(1) + 'd';
+    }
+
+    // Servicio top
+    const servicioCount = {};
+    peds.forEach(p => {
+      const s = (p.servicio || 'S/N').trim().toUpperCase();
+      servicioCount[s] = (servicioCount[s] || 0) + 1;
+    });
+    const servicioTop = Object.entries(servicioCount).sort((a, b) => b[1] - a[1])[0];
+
+    // Producto top (lo traigo de pedido_items de los mismos pedidos)
+    let productoTop = null;
+    try {
+      const ids = peds.map(p => p.id);
+      if (ids.length > 0) {
+        const items = await sbQuery('pedido_items',
+          `select=producto_id,cantidad_solicitada,productos(nombre)&pedido_id=in.(${ids.join(',')})`);
+        const prodCount = {};
+        items.forEach(i => {
+          const nombre = (i.productos && i.productos.nombre) || 'Producto #' + i.producto_id;
+          prodCount[nombre] = (prodCount[nombre] || 0) + (i.cantidad_solicitada || 0);
+        });
+        productoTop = Object.entries(prodCount).sort((a, b) => b[1] - a[1])[0];
+      }
+    } catch(e) { /* silencioso */ }
+
+    // Actualizar cards
+    document.getElementById('ps-total').textContent      = total;
+    document.getElementById('ps-pendientes').textContent = pendientes;
+    document.getElementById('ps-tiempo').textContent     = tiempoProm;
+    document.getElementById('ps-servicio').textContent   = servicioTop
+      ? `${servicioTop[0]} (${servicioTop[1]})`
+      : '\u2014';
+    document.getElementById('ps-producto').textContent   = productoTop
+      ? `${productoTop[0]}`
+      : '\u2014';
+
+    // Gr\u00e1fico: pedidos por d\u00eda (\u00faltimos 30 d\u00edas)
+    const labels = [];
+    const porDia = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(hoy.getTime() - i * 24 * 3600 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      labels.push(d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit' }));
+      porDia[key] = 0;
+    }
+    peds.forEach(p => {
+      const key = String(p.fecha).slice(0, 10);
+      if (key in porDia) porDia[key]++;
+    });
+    const datos = Object.keys(porDia).sort().map(k => porDia[k]);
+
+    const canvas = document.getElementById('ps-chart');
+    if (canvas && window.Chart) {
+      if (_psChart) { _psChart.destroy(); }
+      const ctx = canvas.getContext('2d');
+      _psChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Pedidos',
+            data: datos,
+            backgroundColor: 'rgba(56,189,248,.5)',
+            borderColor: 'rgba(56,189,248,1)',
+            borderWidth: 1,
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94A3B8', font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#94A3B8', font: { size: 10 }, stepSize: 1 }, grid: { color: 'rgba(148,163,184,.1)' } }
+          }
+        }
+      });
+    }
+  } catch(e) {
+    console.warn('renderPedidosStats error:', e);
+  }
 }
 
 // ============================================================
@@ -2554,6 +2842,64 @@ async function entregarPedido(id) {
 
 // Descarga remito por ID sin requerir que el overlay de detalle est\u00e9 abierto.
 // Carga datos, setea currentPedidoDetail, y llama a downloadPedidoExcel.
+// Guardar ajustes de cantidades en items de un pedido PENDIENTE.
+// Cantidad = 0 elimina el item. Se usa con el modo edici\u00f3n del detalle.
+async function guardarAjustesCantidades(pedidoId) {
+  try {
+    const inputs = document.querySelectorAll('#pedido-detail-body .edit-qty-input');
+    if (inputs.length === 0) { showToast('No hay cambios para guardar', 'warning'); return; }
+
+    // Armar cambios: item_id -> nueva cantidad
+    const cambios = [];
+    inputs.forEach(inp => {
+      const itemId = parseInt(inp.dataset.itemId);
+      const orig   = parseInt(inp.dataset.orig);
+      const nueva  = parseInt(inp.value);
+      if (!isNaN(itemId) && !isNaN(nueva) && nueva !== orig) {
+        cambios.push({ itemId, orig, nueva });
+      }
+    });
+
+    if (cambios.length === 0) { showToast('No hay cambios respecto a lo original', 'success'); return; }
+
+    const resumen = cambios.map(c =>
+      `\u2022 item ${c.itemId}: ${c.orig} \u2192 ${c.nueva === 0 ? 'ELIMINAR' : c.nueva}`
+    ).join('\n');
+
+    const ok = await spcdConfirm(
+      `Se van a aplicar ${cambios.length} cambio(s):\n\n${resumen}\n\n\u00bfConfirm\u00e1s?`,
+      { title: 'Ajustar cantidades', okText: 'Guardar ajustes', type: 'prompt' }
+    );
+    if (!ok) return;
+
+    // Aplicar cambios en DB
+    for (const c of cambios) {
+      if (c.nueva === 0) {
+        await sbDelete('pedido_items', c.itemId);
+      } else {
+        await sbUpdate('pedido_items', c.itemId, { cantidad_solicitada: c.nueva });
+      }
+    }
+
+    // Si TODOS los items quedaron en 0 (pedido vac\u00edo), avisar
+    const quedaron = await sbQuery('pedido_items', `select=id&pedido_id=eq.${pedidoId}`);
+    if (quedaron.length === 0) {
+      await spcdAlert(
+        'El pedido qued\u00f3 sin items (todos en 0). Ser\u00eda recomendable rechazarlo.',
+        { type: 'alert', title: 'Pedido vac\u00edo' }
+      );
+    }
+
+    showToast(`${cambios.length} ajuste(s) guardado(s)`, 'success');
+    // Recargar el detalle para mostrar las nuevas cantidades
+    await showPedidoDetail(pedidoId);
+    await loadPedidos();
+  } catch(e) {
+    await spcdAlert('Error al guardar ajustes: ' + e.message, { type:'error', title:'Error' });
+    console.error('guardarAjustesCantidades error:', e);
+  }
+}
+
 async function downloadRemitoById(id) {
   try {
     showToast('Generando remito...', 'success');
@@ -2654,10 +3000,14 @@ async function showPedidoDetail(pedidoId) {
     document.getElementById('pedido-detail-count').textContent = `${items.length} productos — ${totalUnid} unidades`;
 
     // Tabla de items
-    const mostrarLotes = ['APROBADO','ENTREGADO'].includes(ped.estado);
+    const mostrarLotes   = ['APROBADO','ENTREGADO'].includes(ped.estado);
+    // Admin/mixto puede EDITAR cantidades cuando el pedido est\u00e1 PENDIENTE
+    const editableQty    = ped.estado === 'PENDIENTE' &&
+                           currentUser && ['admin','mixto'].includes(currentUser.rol);
+
     let html = `<table class="pedido-detail-table">
       <thead><tr>
-        <th>#</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Unidad</th>
+        <th>#</th><th>Producto</th><th>Tipo</th><th>Cantidad${editableQty ? ' <span style=\"font-size:9px; color:var(--cyan)\">(editable)</span>' : ''}</th><th>Unidad</th>
         ${mostrarLotes ? '<th>Lotes asignados (FEFO)</th>' : ''}
         <th>Obs</th>
       </tr></thead><tbody>`;
@@ -2690,11 +3040,16 @@ async function showPedidoDetail(pedidoId) {
         }
       }
 
+      // Celda cantidad: input editable o solo lectura
+      const cantCell = editableQty
+        ? `<td><input type="number" min="0" step="1" value="${cantDisplay}" data-item-id="${item.id}" data-orig="${cantDisplay}" class="edit-qty-input" style="width:72px; padding:5px 8px; border-radius:6px; background:rgba(15,23,42,.7); border:1px solid var(--border); color:var(--sky); font-weight:600; font-size:13px; font-family:'Inter',sans-serif; text-align:center;"/></td>`
+        : `<td style="font-weight:600; color:var(--sky)">${cantDisplay}</td>`;
+
       html += `<tr>
         <td style="color:var(--muted)">${idx + 1}</td>
         <td><strong>${esc(prod.nombre || 'Producto #' + item.producto_id)}</strong></td>
         <td><span class="tipo-badge ${prod.tipo === 'MED' ? 'tipo-med' : 'tipo-ins'}">${prod.tipo || '\u2014'}</span></td>
-        <td style="font-weight:600; color:var(--sky)">${cantDisplay}</td>
+        ${cantCell}
         <td style="font-size:11px">${unidDisplay}</td>
         ${lotesCell}
         <td style="font-size:11px; color:var(--muted)">${esc(item.observacion || '')}</td>
@@ -2703,18 +3058,32 @@ async function showPedidoDetail(pedidoId) {
 
     html += '</tbody></table>';
 
-    // Botón de acción contextual según estado (para admin/mixto)
+    if (editableQty) {
+      html += `<div style="margin-top:10px; font-size:11px; color:var(--muted); letter-spacing:1px;">\u2139\uFE0F Pod\u00e9s ajustar cantidades antes de aprobar. Poner 0 elimina el \u00edtem del pedido.</div>`;
+    }
+
+    // Acciones del detalle (seg\u00fan rol + estado)
+    const accionesHtml = [];
+
+    // Bot\u00f3n "Pedir otra vez" — disponible SIEMPRE (cualquier rol con acceso a pedidos)
+    // \u00datil para repetir un pedido anterior con los mismos items.
+    if (currentUser && ['admin','mixto','solicitante'].includes(currentUser.rol)) {
+      accionesHtml.push(`<button class="btn-secondary" style="border-color:rgba(34,219,174,.35); color:var(--cyan);" onclick="duplicarPedido(${ped.id})">&#x27F3; Pedir otra vez</button>`);
+    }
+
+    // Acciones espec\u00edficas para admin/mixto seg\u00fan estado
     if (currentUser && ['admin','mixto'].includes(currentUser.rol)) {
       if (ped.estado === 'PENDIENTE') {
-        html += `<div class="form-actions" style="margin-top:16px; justify-content:flex-end">
-          <button class="btn-submit" onclick="approvePedido(${ped.id})">&#x2705; Aprobar (FEFO)</button>
-          <button class="btn-secondary" style="border-color:var(--red); color:var(--red);" onclick="rejectPedido(${ped.id})">&#x274C; Rechazar</button>
-        </div>`;
+        accionesHtml.push(`<button class="btn-secondary" style="border-color:rgba(34,219,174,.4); color:var(--cyan);" onclick="guardarAjustesCantidades(${ped.id})">&#x1F4BE; Guardar ajustes</button>`);
+        accionesHtml.push(`<button class="btn-submit" onclick="approvePedido(${ped.id})">&#x2705; Aprobar (FEFO)</button>`);
+        accionesHtml.push(`<button class="btn-secondary" style="border-color:var(--red); color:var(--red);" onclick="rejectPedido(${ped.id})">&#x274C; Rechazar</button>`);
       } else if (ped.estado === 'APROBADO') {
-        html += `<div class="form-actions" style="margin-top:16px; justify-content:flex-end">
-          <button class="btn-submit" style="background:linear-gradient(135deg, var(--sky), var(--blue));" onclick="entregarPedido(${ped.id})">&#x1F4E6; Marcar Entregado + Remito</button>
-        </div>`;
+        accionesHtml.push(`<button class="btn-submit" style="background:linear-gradient(135deg, var(--sky), var(--blue));" onclick="entregarPedido(${ped.id})">&#x1F4E6; Marcar Entregado + Remito</button>`);
       }
+    }
+
+    if (accionesHtml.length > 0) {
+      html += `<div class="form-actions" style="margin-top:16px; justify-content:flex-end; flex-wrap:wrap; gap:8px;">${accionesHtml.join('')}</div>`;
     }
 
     document.getElementById('pedido-detail-body').innerHTML = html;
@@ -3070,17 +3439,104 @@ async function mostrarLinkPedidos() {
 }
 
 // NEW PEDIDO
-function showNewPedido() {
+// ── PLANTILLA / PEDIDO HABITUAL ───────────────────────────
+// Guarda los items del \u00faltimo pedido enviado por este usuario
+// (en localStorage, por username) para poder reutilizarlos.
+function plantillaKey() {
+  const u = (currentUser && currentUser.username) || 'anon';
+  return `spcd_plantilla_${u}`;
+}
+function savePlantillaPedido(items) {
+  try {
+    if (!items || items.length === 0) return;
+    const payload = { ts: Date.now(), items };
+    localStorage.setItem(plantillaKey(), JSON.stringify(payload));
+  } catch(e) { /* silencioso */ }
+}
+function loadPlantillaPedido() {
+  try {
+    const raw = localStorage.getItem(plantillaKey());
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    return (p && Array.isArray(p.items) && p.items.length > 0) ? p : null;
+  } catch(e) { return null; }
+}
+function cargarPlantillaPedido() {
+  const p = loadPlantillaPedido();
+  if (!p) { showToast('No hay plantilla guardada todav\u00eda', 'warning'); return; }
+  const container = document.getElementById('ped-items-container');
+  container.innerHTML = '';
+  p.items.forEach(it => addPedidoItem(it));
+  showToast(`Prellenados ${p.items.length} item(s) de tu \u00faltimo pedido`, 'success');
+}
+
+function showNewPedido(prefill) {
   document.getElementById('modal-pedido').classList.add('active');
-  document.getElementById('ped-items-container').innerHTML = '';
-  addPedidoItem();
+  const container = document.getElementById('ped-items-container');
+  container.innerHTML = '';
+
+  // Reset campos del header del modal
+  const servicioInput  = document.getElementById('ped-servicio');
+  const urgenciaSelect = document.getElementById('ped-urgencia');
+  const obsInput       = document.getElementById('ped-obs');
+  if (prefill && typeof prefill === 'object') {
+    if (servicioInput)  servicioInput.value  = prefill.servicio  || '';
+    if (urgenciaSelect) urgenciaSelect.value = prefill.urgencia  || 'NORMAL';
+    if (obsInput)       obsInput.value       = '';  // obs NO se duplica
+  } else {
+    if (servicioInput)  servicioInput.value  = '';
+    if (urgenciaSelect) urgenciaSelect.value = 'NORMAL';
+    if (obsInput)       obsInput.value       = '';
+  }
+
+  // Bot\u00f3n "Usar pedido habitual": solo si hay plantilla Y no es un duplicado/prefill
+  const btnPlantilla = document.getElementById('btn-cargar-plantilla');
+  if (btnPlantilla) {
+    const tienePlantilla = !!loadPlantillaPedido();
+    const esDuplicado    = prefill && Array.isArray(prefill.items) && prefill.items.length > 0;
+    btnPlantilla.style.display = (tienePlantilla && !esDuplicado) ? 'inline-flex' : 'none';
+  }
+
+  // Items: si hay prefill, agregar una fila por item; si no, una fila vac\u00eda
+  const items = (prefill && Array.isArray(prefill.items)) ? prefill.items : [];
+  if (items.length === 0) {
+    addPedidoItem();
+  } else {
+    items.forEach(it => addPedidoItem(it));
+  }
+}
+
+// Duplicar un pedido existente (cualquier estado): abre el modal de
+// nuevo pedido con los mismos items preseleccionados.
+async function duplicarPedido(pedidoId) {
+  try {
+    const items = await sbQuery('pedido_items',
+      `select=producto_id,cantidad_solicitada,observacion&pedido_id=eq.${pedidoId}&order=id.asc`);
+    const ped = currentPedidoDetail?.pedido;
+
+    // Cerrar overlay de detalle si est\u00e1 abierto, para que se vea el modal nuevo
+    closePedidoDetail();
+
+    showNewPedido({
+      servicio: (ped && ped.servicio) || '',
+      urgencia: 'NORMAL',  // reseteado a normal a prop\u00f3sito
+      items: items.map(it => ({
+        producto_id: it.producto_id,
+        cantidad:    it.cantidad_solicitada,
+        observacion: it.observacion || ''
+      }))
+    });
+    showToast(`Pedido prellenado con ${items.length} item(s)`, 'success');
+  } catch(e) {
+    await spcdAlert('No se pudieron cargar los items: ' + e.message, { type:'error' });
+  }
 }
 
 function closePedidoModal() {
   document.getElementById('modal-pedido').classList.remove('active');
 }
 
-function addPedidoItem() {
+function addPedidoItem(prefillItem) {
   const container = document.getElementById('ped-items-container');
   const row = document.createElement('div');
   row.className = 'ped-item-row';
@@ -3097,6 +3553,16 @@ function addPedidoItem() {
     <div class="ped-stock-hint" style="font-size:10px; letter-spacing:1px; color:var(--muted); padding-left:2px; min-height:14px;"></div>
   `;
   container.appendChild(row);
+
+  // Prellenar si nos pasan un item (usado por duplicarPedido y plantillas)
+  if (prefillItem && prefillItem.producto_id) {
+    const sel = row.querySelector('.ped-prod');
+    const qty = row.querySelector('.ped-qty');
+    sel.value = String(prefillItem.producto_id);
+    qty.value = prefillItem.cantidad || prefillItem.cantidad_solicitada || '';
+    // Dispara el hint de stock
+    onPedidoProdChange(sel);
+  }
 }
 
 // Al cambiar de producto → mostrar disponibilidad si el rol la ve
@@ -3213,6 +3679,12 @@ async function submitPedido() {
     // Crear items
     const itemsData = items.map(it => ({ ...it, pedido_id: pedido.id }));
     await sbInsert('pedido_items', itemsData);
+
+    // Guardar plantilla: estos items son el "pedido habitual" del usuario
+    savePlantillaPedido(items.map(it => ({
+      producto_id: it.producto_id,
+      cantidad:    it.cantidad_solicitada
+    })));
 
     showToast('Pedido #' + pedido.id + ' enviado', 'success');
     closePedidoModal();

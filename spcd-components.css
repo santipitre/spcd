@@ -176,3 +176,43 @@
   text-transform: uppercase;
   font-family: 'Inter', sans-serif;
 }
+
+/* ============================================================
+   BARRA DE FILTROS (lista de pedidos, bandeja, etc.)
+   ============================================================ */
+.pedidos-filtros {
+  background: rgba(15,23,42,.45);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.ped-filtros-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.ped-filtro-grp { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.ped-filtro-grp-grow { flex: 1; min-width: 200px; }
+.ped-filtro-grp label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+}
+.ped-filtro-grp select,
+.ped-filtro-grp input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(15,23,42,.6);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color .2s;
+}
+.ped-filtro-grp input:focus,
+.ped-filtro-grp select:focus { border-color: var(--accent, #38BDF8); }
