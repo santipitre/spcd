@@ -12,6 +12,7 @@
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-180.png"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
+  <link rel="stylesheet" href="spcd-components.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <style>
@@ -24,6 +25,10 @@
       --slate:   #64748B;
       --glass:   rgba(30, 58, 138, 0.25);
       --border:  rgba(34, 219, 174, 0.2);
+      /* Color de acento del rol (usado por spcd-components.css) */
+      --accent:        var(--sky);
+      --accent-bg:     rgba(56,189,248,.1);
+      --accent-border: rgba(56,189,248,.3);
     }
 
     html, body {
@@ -58,25 +63,16 @@
     .brand-name { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; color: var(--text); }
     .brand-sub { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
     .topbar-right { display: flex; align-items: center; gap: 12px; }
-    .sede-chip {
-      background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3);
-      border-radius: 4px; padding: 5px 12px;
-      font-size: 10px; letter-spacing: 2px; color: var(--sky); text-transform: uppercase;
-    }
+    /* .sede-chip: base en spcd-components.css; override de tama\u00f1o especifico de operativo */
+    .sede-chip { padding: 5px 12px; font-size: 10px; }
     .user-chip {
       background: rgba(85,231,139,.08); border: 1px solid rgba(85,231,139,.3);
       border-radius: 4px; padding: 5px 12px;
       font-size: 10px; letter-spacing: 2px; color: var(--green); text-transform: uppercase;
       display: none;
     }
-    .btn-top {
-      padding: 6px 14px; border-radius: 6px;
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted); font-size: 11px; letter-spacing: 1.5px;
-      cursor: pointer; transition: all .2s; text-transform: uppercase;
-      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn-top:hover { border-color: var(--sky); color: var(--sky); }
+    /* .btn-top:hover ahora usa var(--accent) desde spcd-components.css.
+       Variante 'danger' es especifica de operativo: */
     .btn-top.danger:hover { border-color: var(--red); color: var(--red); }
 
     /* === SCREENS === */
@@ -119,28 +115,12 @@
       font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 2px;
     }
 
-    .form-group { margin-bottom: 18px; }
-    .form-group label {
-      display: block; font-size: 11px; letter-spacing: 2px;
-      color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
-    }
-    .form-group input {
-      width: 100%; padding: 12px 14px; border-radius: 8px;
-      background: rgba(15,23,42,.6); border: 1px solid var(--border);
-      color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
-      outline: none; transition: border-color .2s;
-    }
+    /* .form-group: base en spcd-components.css */
     .form-group input:focus { border-color: var(--sky); }
     .form-group input::placeholder { color: var(--slate); }
 
-    .btn-login {
-      width: 100%; padding: 14px; border: none; border-radius: 8px;
-      background: linear-gradient(135deg, var(--blue), var(--sky));
-      color: white; font-family: 'Rajdhani', sans-serif;
-      font-size: 16px; font-weight: 700; letter-spacing: 3px;
-      text-transform: uppercase; cursor: pointer;
-      transition: all .2s; margin-top: 6px;
-    }
+    /* .btn-login: base en spcd-components.css (hover de operativo sobreescribe con sky) */
+    .btn-login { margin-top: 6px; background: linear-gradient(135deg, var(--blue), var(--sky)); }
     .btn-login:hover { box-shadow: 0 4px 20px rgba(56,189,248,.4); transform: translateY(-1px); }
     .btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 

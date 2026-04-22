@@ -15,6 +15,7 @@
   <link rel="apple-touch-icon" id="apple-icon" href="icon-180.png"/>
 
   <link rel="stylesheet" href="spcd-theme.css"/>
+  <link rel="stylesheet" href="spcd-components.css"/>
   <style>
     /* Variables especificas del modulo index / landing (las comunes vienen de spcd-theme.css) */
     :root {
@@ -445,28 +446,10 @@
       font-size: 11px; letter-spacing: 2px; color: var(--muted);
       text-transform: uppercase; margin-top: 2px;
     }
-    .form-group { margin-bottom: 18px; }
-    .form-group label {
-      display: block; font-size: 11px; letter-spacing: 2px;
-      color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
-    }
-    .form-group input {
-      width: 100%; padding: 12px 14px; border-radius: 8px;
-      background: rgba(15,23,42,.6); border: 1px solid var(--border);
-      color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif;
-      outline: none; transition: border-color .2s;
-    }
+    /* .form-group y .btn-login: base en spcd-components.css */
     .form-group input:focus { border-color: #38BDF8; }
     .form-group input::placeholder { color: var(--slate); }
-    .btn-login {
-      width: 100%; padding: 14px; border: none; border-radius: 8px;
-      background: linear-gradient(135deg, var(--blue), #38BDF8);
-      color: white; font-family: 'Rajdhani', sans-serif;
-      font-size: 16px; font-weight: 700; letter-spacing: 3px;
-      text-transform: uppercase; cursor: pointer;
-      transition: all .2s; margin-top: 6px;
-    }
-    .btn-login:hover { box-shadow: 0 4px 20px rgba(56,189,248,.4); transform: translateY(-1px); }
+    .btn-login { margin-top: 6px; }
     .btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
     .login-error {
       margin-top: 12px; padding: 10px 14px; border-radius: 6px;

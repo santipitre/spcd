@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="theme-color" content="#0F172A"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
+  <link rel="stylesheet" href="spcd-components.css"/>
   <style>
     /* Variables especificas del modulo tecnico (las comunes vienen de spcd-theme.css) */
     :root {
@@ -17,6 +18,10 @@
       --glass2: rgba(15,23,42,.6);
       --border: rgba(59,130,246,.2);
       --border-c:rgba(34,219,174,.25);
+      /* Color de acento del rol (usado por spcd-components.css) */
+      --accent:        var(--cyan);
+      --accent-bg:     rgba(34,219,174,.1);
+      --accent-border: rgba(34,219,174,.3);
     }
     html, body {
       font-size: 14px; line-height: 1.5;
@@ -31,35 +36,17 @@
       padding: 0 24px;
       display: flex; align-items: center; gap: 16px; height: 56px;
     }
-    .topbar-logo {
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 20px; font-weight: 700; color: var(--cyan);
-      letter-spacing: 2px; white-space: nowrap;
-    }
-    .topbar-sep { width: 1px; height: 24px; background: var(--border); }
-    .topbar-crumbs {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12px; color: var(--muted); letter-spacing: 1px;
-    }
-    .topbar-crumbs .crumb-active {
-      color: var(--blue); font-weight: 600;
-    }
-    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    /* .topbar-logo, .topbar-sep, .topbar-crumbs, .topbar-right
+       ahora viven en spcd-components.css y usan var(--accent) */
+    /* Nota: el .sede-chip original usaba var(--blue) en lugar del cyan del rol;
+       mantengo la versión legado con override para preservar identidad visual */
     .sede-chip {
-      padding: 4px 12px; border-radius: 4px;
       background: rgba(59,130,246,.1);
-      border: 1px solid rgba(59,130,246,.3);
-      font-size: 11px; letter-spacing: 2px;
-      color: var(--blue); text-transform: uppercase;
+      border-color: rgba(59,130,246,.3);
+      color: var(--blue);
     }
-    .btn-back-top {
-      padding: 6px 14px; border-radius: 6px;
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted); font-size: 11px; letter-spacing: 1px;
-      cursor: pointer; transition: all .2s; text-transform: uppercase;
-      text-decoration: none; display: flex; align-items: center; gap: 6px;
-    }
-    .btn-back-top:hover { border-color: var(--cyan); color: var(--cyan); }
+    .topbar-crumbs .crumb-active { color: var(--blue); }
+    /* .btn-back-top:hover ahora usa var(--accent) desde spcd-components.css */
 
     /* ── LAYOUT ── */
     .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
@@ -124,14 +111,7 @@
       transition: opacity .2s; align-self: flex-end;
     }
     .btn-apply:hover { opacity: .85; }
-    .btn-reset {
-      padding: 8px 16px; border-radius: 6px;
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted); font-size: 12px; letter-spacing: 1px;
-      cursor: pointer; font-family: 'Inter', sans-serif;
-      transition: all .2s; align-self: flex-end;
-      text-transform: uppercase;
-    }
+    /* .btn-reset: base en spcd-components.css, hover especifico de tecnico aqui */
     .btn-reset:hover { border-color: var(--red); color: var(--red); }
 
     /* ── KPI CARDS ── */
@@ -159,11 +139,7 @@
     .kpi-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
     .kpi-card.red::after   { background: linear-gradient(90deg, var(--red), transparent); }
 
-    .kpi-label {
-      font-size: 10px; letter-spacing: 2px;
-      color: var(--muted); text-transform: uppercase;
-      margin-bottom: 10px;
-    }
+    /* .kpi-label: base en spcd-components.css */
     .kpi-val {
       font-family: 'Rajdhani', sans-serif;
       font-size: 38px; font-weight: 700; line-height: 1;
