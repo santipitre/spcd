@@ -625,13 +625,13 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="spcd-utils.js"></script>
+<script src="spcd-supabase.js"></script>
 <script>
 /* -- STORAGE (IndexedDB) -- */
 /* SPCD_DB, SPCD_STORE, openDB, dbLoad, dbSave viven ahora en spcd-utils.js */
 
 /* -- SUPABASE CONFIG -- */
-const SUPABASE_URL = 'https://erjdncsnomwymjiaslpx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyamRuY3Nub213eW1qaWFzbHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTYyMjYsImV4cCI6MjA5MTkzMjIyNn0.Ve94iTefBgmFsU3lyzizOUohVxtuOOf1h2yMR6rJJg8';
+/* SUPABASE_URL, SUPABASE_KEY y SB_HEADERS viven ahora en spcd-supabase.js */
 const SESSION_KEY = 'spcd_session';
 const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 horas
 
