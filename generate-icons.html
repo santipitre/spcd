@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html><head><title>Generar Iconos SPCD</title></head>
+<body style="background:#0F172A;color:#E2E8F0;font-family:sans-serif;text-align:center;padding:40px">
+<h2>Generador de Iconos SP Control Data</h2>
+<p>Hacé click en cada botón para descargar el ícono:</p>
+<canvas id="cv" style="display:none"></canvas>
+<br><br>
+<button onclick="dl(512,'icon-512.png')" style="padding:12px 24px;font-size:16px;cursor:pointer;margin:8px">Descargar 512x512</button>
+<button onclick="dl(192,'icon-192.png')" style="padding:12px 24px;font-size:16px;cursor:pointer;margin:8px">Descargar 192x192</button>
+<button onclick="dl(180,'icon-180.png')" style="padding:12px 24px;font-size:16px;cursor:pointer;margin:8px">Descargar 180x180 (Apple)</button>
+<br><br>
+<div id="preview"></div>
+<script>
+function drawIcon(size) {
+  const c = document.getElementById('cv');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const s = size / 512;
+  ctx.scale(s, s);
+
+  // Background rounded rect
+  const bgGrad = ctx.createLinearGradient(0, 0, 512, 512);
+  bgGrad.addColorStop(0, '#1E3A8A');
+  bgGrad.addColorStop(1, '#0F172A');
+  roundRect(ctx, 0, 0, 512, 512, 90);
+  ctx.fillStyle = bgGrad;
+  ctx.fill();
+
+  // Inner glow
+  const ig = ctx.createRadialGradient(256, 200, 0, 256, 256, 320);
+  ig.addColorStop(0, 'rgba(59,130,246,0.18)');
+  ig.addColorStop(1, 'rgba(15,23,42,0)');
+  ctx.fillStyle = ig;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Shield path
+  const cx = 256, cy = 215;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 115);
+  ctx.bezierCurveTo(cx + 60, cy - 115, cx + 120, cy - 85, cx + 105, cy + 20);
+  ctx.bezierCurveTo(cx + 95, cy + 80, cx + 50, cy + 120, cx, cy + 135);
+  ctx.bezierCurveTo(cx - 50, cy + 120, cx - 95, cy + 80, cx - 105, cy + 20);
+  ctx.bezierCurveTo(cx - 120, cy - 85, cx - 60, cy - 115, cx, cy - 115);
+  ctx.closePath();
+
+  // Shield fill
+  const sf = ctx.createLinearGradient(cx - 110, cy - 115, cx + 110, cy + 135);
+  sf.addColorStop(0, '#0F172A');
+  sf.addColorStop(0.4, '#111d35');
+  sf.addColorStop(1, '#0F172A');
+  ctx.fillStyle = sf;
+  ctx.fill();
+
+  // Shield border gradient
+  const sb = ctx.createLinearGradient(cx - 110, cy - 115, cx + 110, cy + 135);
+  sb.addColorStop(0, '#3B82F6');
+  sb.addColorStop(0.6, '#22DBAE');
+  sb.addColorStop(1, '#3B82F6');
+  ctx.strokeStyle = sb;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // Wave inside shield
+  ctx.save();
+  ctx.clip();
+  ctx.beginPath();
+  ctx.moveTo(cx - 130, cy + 40);
+  ctx.quadraticCurveTo(cx - 30, cy + 5, cx + 20, cy + 50);
+  ctx.quadraticCurveTo(cx + 70, cy + 90, cx + 130, cy + 30);
+  ctx.lineTo(cx + 130, cy + 160);
+  ctx.lineTo(cx - 130, cy + 160);
+  ctx.closePath();
+  const wg = ctx.createLinearGradient(cx - 100, cy + 30, cx + 100, cy + 140);
+  wg.addColorStop(0, 'rgba(59,130,246,0.35)');
+  wg.addColorStop(1, 'rgba(34,219,174,0.25)');
+  ctx.fillStyle = wg;
+  ctx.fill();
+  ctx.restore();
+
+  // SP text
+  ctx.font = 'bold 155px Arial, Helvetica, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Text shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillText('SP', cx + 4, cy + 18);
+
+  // Text gradient
+  const tg = ctx.createLinearGradient(cx - 80, cy - 50, cx + 80, cy + 50);
+  tg.addColorStop(0, '#FFFFFF');
+  tg.addColorStop(0.6, '#C8DEFF');
+  tg.addColorStop(1, '#3B82F6');
+  ctx.fillStyle = tg;
+  ctx.fillText('SP', cx, cy + 14);
+
+  // Bottom text
+  ctx.font = 'bold 38px Arial, Helvetica, sans-serif';
+  ctx.fillStyle = '#22DBAE';
+  ctx.fillText('CONTROL DATA', cx, 420);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  return c;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function dl(size, name) {
+  drawIcon(size);
+  const link = document.createElement('a');
+  link.download = name;
+  link.href = document.getElementById('cv').toDataURL('image/png');
+  link.click();
+}
+
+// Preview
+drawIcon(256);
+const img = new Image();
+img.src = document.getElementById('cv').toDataURL('image/png');
+img.style.borderRadius = '40px';
+img.style.boxShadow = '0 8px 40px rgba(59,130,246,0.3)';
+document.getElementById('preview').appendChild(img);
+</script>
+</body>
+</html>
