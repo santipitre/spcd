@@ -1295,6 +1295,10 @@ function applyPermissions() {
   const rol = currentUser.rol;
   const tabs = document.querySelectorAll('.nav-tab');
 
+  // Marcar el body con la clase del rol actual (para CSS de permisos globales)
+  document.body.classList.remove('spcd-rol-solicitante', 'spcd-rol-consultor', 'spcd-rol-mixto', 'spcd-rol-admin');
+  document.body.classList.add('spcd-rol-' + rol);
+
   // solicitante: only pedidos
   if (rol === 'solicitante') {
     tabs.forEach(t => {

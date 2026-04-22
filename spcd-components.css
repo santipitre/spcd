@@ -241,3 +241,19 @@
 .toast.error    { background: rgba(239,68,68,.15);   border: 1px solid var(--red);   color: var(--red); }
 .toast.warning  { background: rgba(245,158,11,.15);  border: 1px solid #F59E0B;      color: #F59E0B; }
 .toast.info     { background: rgba(56,189,248,.15);  border: 1px solid #38BDF8;      color: #38BDF8; }
+
+/* ============================================================
+   OCULTACIONES POR ROL
+   ------------------------------------------------------------
+   Los solicitantes puros (que solo hacen pedidos) no deben ver:
+     - el FAB de distribución y contactos (spcd-share.js #ss-fab)
+     - el chatbot IA (chatbot.js #spcd-cb-btn y su ventana)
+   El JS agrega la clase .spcd-rol-solicitante al <body> y este
+   CSS se encarga del resto (funciona aunque los elementos se
+   inyecten después de que cargue el DOM).
+   ============================================================ */
+body.spcd-rol-solicitante #ss-fab,
+body.spcd-rol-solicitante #spcd-cb-btn,
+body.spcd-rol-solicitante #spcd-cb-win {
+  display: none !important;
+}

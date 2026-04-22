@@ -871,6 +871,18 @@ async function renderModules() {
   const modulos = permisos.modulos || {};
   const grid = document.getElementById('roles-grid');
 
+  // Atajo para solicitantes puros: van directo a "MIS PEDIDOS"
+  // sin ver la pantalla de selección de módulo.
+  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ'];
+  const esSolicitantePuro =
+    currentUser.rol === 'solicitante' ||
+    (currentUser.username && SOLICITANTES_FORZADOS.includes(currentUser.username.toUpperCase()));
+  if (esSolicitantePuro) {
+    localStorage.setItem('spcd_rol', 'operativo');
+    window.location.replace('operativo.html?modo=pedidos');
+    return;
+  }
+
   // Greeting
   document.getElementById('user-greeting').textContent = currentUser.nombre;
 
