@@ -13,6 +13,7 @@
   <link rel="apple-touch-icon" href="icon-180.png"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
   <link rel="stylesheet" href="spcd-components.css"/>
+  <link rel="stylesheet" href="spcd-dialog.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <style>
@@ -152,86 +153,7 @@
     }
     .modal-box p { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
 
-    /* === SPCD DIALOG (confirm / alert / prompt) === */
-    .spcd-dialog {
-      width: 100%; max-width: 460px;
-      background: linear-gradient(180deg, rgba(30,58,138,.15), var(--surface));
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(56,189,248,.08) inset;
-      overflow: hidden;
-      animation: fadeUp .25s ease;
-    }
-    .spcd-dialog-header {
-      padding: 16px 22px;
-      background: linear-gradient(135deg, rgba(30,58,138,.4), rgba(15,23,42,.6));
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .spcd-dialog-icon {
-      width: 36px; height: 36px; flex-shrink: 0;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 700;
-    }
-    .spcd-dialog.type-confirm  .spcd-dialog-icon { background: rgba(56,189,248,.15); color: var(--sky); border: 1px solid rgba(56,189,248,.4); }
-    .spcd-dialog.type-alert    .spcd-dialog-icon { background: rgba(245,158,11,.15); color: var(--amber); border: 1px solid rgba(245,158,11,.4); }
-    .spcd-dialog.type-error    .spcd-dialog-icon { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.4); }
-    .spcd-dialog.type-prompt   .spcd-dialog-icon { background: rgba(34,219,174,.15); color: var(--cyan); border: 1px solid rgba(34,219,174,.4); }
-    .spcd-dialog.type-success  .spcd-dialog-icon { background: rgba(85,231,139,.15); color: var(--green); border: 1px solid rgba(85,231,139,.4); }
-    .spcd-dialog-title {
-      font-family: 'Rajdhani', sans-serif; font-size: 17px;
-      font-weight: 700; letter-spacing: 2px; color: var(--text);
-      text-transform: uppercase;
-    }
-    .spcd-dialog.type-alert    .spcd-dialog-title { color: var(--amber); }
-    .spcd-dialog.type-error    .spcd-dialog-title { color: var(--red); }
-    .spcd-dialog.type-confirm  .spcd-dialog-title { color: var(--sky); }
-    .spcd-dialog.type-prompt   .spcd-dialog-title { color: var(--cyan); }
-    .spcd-dialog.type-success  .spcd-dialog-title { color: var(--green); }
-    .spcd-dialog-body {
-      padding: 20px 22px;
-      font-size: 13px; line-height: 1.55; color: var(--text);
-      white-space: pre-wrap; word-wrap: break-word;
-      max-height: 50vh; overflow-y: auto;
-    }
-    .spcd-dialog-body strong { color: var(--sky); }
-    .spcd-dialog-input {
-      width: 100%; margin-top: 14px; padding: 10px 12px;
-      background: rgba(15,23,42,.6); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text);
-      font-family: 'Inter', sans-serif; font-size: 13px;
-      outline: none; transition: border-color .2s;
-    }
-    .spcd-dialog-input:focus { border-color: var(--cyan); }
-    .spcd-dialog-footer {
-      padding: 14px 22px;
-      background: rgba(15,23,42,.4);
-      border-top: 1px solid var(--border);
-      display: flex; justify-content: flex-end; gap: 10px;
-    }
-    .spcd-dialog-btn {
-      padding: 9px 20px; border-radius: 8px;
-      font-family: 'Inter', sans-serif; font-size: 11px;
-      font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
-      cursor: pointer; transition: all .2s;
-      border: 1px solid transparent; white-space: nowrap;
-    }
-    .spcd-dialog-btn-primary {
-      background: linear-gradient(135deg, var(--sky), var(--blue));
-      color: #fff; border-color: rgba(56,189,248,.5);
-      box-shadow: 0 2px 10px rgba(56,189,248,.25);
-    }
-    .spcd-dialog-btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    .spcd-dialog.type-alert   .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--amber), #b45309); box-shadow: 0 2px 10px rgba(245,158,11,.25); }
-    .spcd-dialog.type-error   .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--red), #991b1b); box-shadow: 0 2px 10px rgba(239,68,68,.25); }
-    .spcd-dialog.type-prompt  .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--cyan), #0891b2); box-shadow: 0 2px 10px rgba(34,219,174,.25); }
-    .spcd-dialog.type-success .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--green), #059669); box-shadow: 0 2px 10px rgba(85,231,139,.25); }
-    .spcd-dialog-btn-secondary {
-      background: transparent; color: var(--muted);
-      border-color: var(--border);
-    }
-    .spcd-dialog-btn-secondary:hover { color: var(--text); border-color: var(--slate); }
+    /* .spcd-dialog* viven ahora en spcd-dialog.css */
 
     /* === MAIN APP === */
     #app-screen { max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
@@ -1137,20 +1059,12 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- ==================== SPCD DIALOG (universal) ==================== -->
-<div class="modal-overlay" id="spcd-dialog-overlay" style="z-index:500">
-  <div class="spcd-dialog" id="spcd-dialog">
-    <div class="spcd-dialog-header">
-      <div class="spcd-dialog-icon" id="spcd-dialog-icon">?</div>
-      <div class="spcd-dialog-title" id="spcd-dialog-title">Confirmar</div>
-    </div>
-    <div class="spcd-dialog-body" id="spcd-dialog-body"></div>
-    <div class="spcd-dialog-footer" id="spcd-dialog-footer"></div>
-  </div>
-</div>
+<!-- El overlay de SPCD dialog se inyecta automaticamente por spcd-dialog.js -->
+
 
 <!-- ==================== JAVASCRIPT ==================== -->
 <script src="spcd-utils.js"></script>
+<script src="spcd-dialog.js"></script>
 <script>
 /* ===========================================================
    SP CONTROL DATA — MÓDULO OPERATIVO
@@ -3361,108 +3275,7 @@ function switchTab(tab) {
 // ============================================================
 /* esc, fmtDate, fmtDateTime, showToast viven ahora en spcd-utils.js */
 
-// ============================================================
-// SPCD DIALOG — reemplazo estilizado de confirm/alert/prompt
-// ============================================================
-const SPCD_DIALOG_ICONS = {
-  confirm: '?', alert: '!', error: '\u2716', prompt: '\u270E', success: '\u2713'
-};
-
-function _spcdShowDialog({ type='confirm', title='', body='', okText='Aceptar', cancelText='Cancelar', showCancel=true, input=null, actions=null }) {
-  return new Promise(resolve => {
-    const overlay = document.getElementById('spcd-dialog-overlay');
-    const box     = document.getElementById('spcd-dialog');
-    const icon    = document.getElementById('spcd-dialog-icon');
-    const titleEl = document.getElementById('spcd-dialog-title');
-    const bodyEl  = document.getElementById('spcd-dialog-body');
-    const footer  = document.getElementById('spcd-dialog-footer');
-
-    box.className = 'spcd-dialog type-' + type;
-    icon.textContent = SPCD_DIALOG_ICONS[type] || '?';
-    titleEl.textContent = title || (type === 'confirm' ? 'Confirmar' : type === 'alert' ? 'Atenci\u00f3n' : type === 'error' ? 'Error' : type === 'prompt' ? 'Ingres\u00e1 un valor' : 'Listo');
-
-    // Body + input opcional
-    bodyEl.innerHTML = '';
-    const msg = document.createElement('div');
-    msg.textContent = body;
-    bodyEl.appendChild(msg);
-
-    let inputEl = null;
-    if (input) {
-      inputEl = document.createElement('input');
-      inputEl.type = input.type || 'text';
-      inputEl.className = 'spcd-dialog-input';
-      inputEl.placeholder = input.placeholder || '';
-      inputEl.value = input.defaultValue || '';
-      bodyEl.appendChild(inputEl);
-    }
-
-    // Footer (botones)
-    footer.innerHTML = '';
-    const makeBtn = (txt, cls, handler) => {
-      const b = document.createElement('button');
-      b.className = 'spcd-dialog-btn ' + cls;
-      b.innerHTML = txt;
-      b.addEventListener('click', handler);
-      return b;
-    };
-
-    const close = (value) => {
-      overlay.classList.remove('active');
-      document.removeEventListener('keydown', onKey);
-      resolve(value);
-    };
-
-    // Modo ACCIONES CUSTOM: [{label, value, primary:true/false}]
-    if (Array.isArray(actions) && actions.length > 0) {
-      actions.forEach(a => {
-        const cls = a.primary ? 'spcd-dialog-btn-primary' : 'spcd-dialog-btn-secondary';
-        footer.appendChild(makeBtn(a.label, cls, () => close(a.value)));
-      });
-      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(null); } };
-      document.addEventListener('keydown', onKey);
-      overlay.classList.add('active');
-      setTimeout(() => { const p = footer.querySelector('.spcd-dialog-btn-primary'); if (p) p.focus(); }, 50);
-      return;
-    }
-
-    const onOk = () => {
-      if (input) close(inputEl.value);
-      else close(true);
-    };
-    const onCancel = () => close(input ? null : false);
-
-    if (showCancel) footer.appendChild(makeBtn(cancelText, 'spcd-dialog-btn-secondary', onCancel));
-    footer.appendChild(makeBtn(okText, 'spcd-dialog-btn-primary', onOk));
-
-    const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); if (showCancel) onCancel(); else onOk(); }
-      else if (e.key === 'Enter' && !e.shiftKey) {
-        if (input && e.target !== inputEl) return;
-        e.preventDefault(); onOk();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-
-    overlay.classList.add('active');
-    setTimeout(() => { if (inputEl) inputEl.focus(); else footer.querySelector('.spcd-dialog-btn-primary').focus(); }, 50);
-  });
-}
-
-// API pública
-function spcdConfirm(message, { title='Confirmar', okText='Aceptar', cancelText='Cancelar', type='confirm' } = {}) {
-  return _spcdShowDialog({ type, title, body: message, okText, cancelText, showCancel: true });
-}
-function spcdAlert(message, { title, type='alert', okText='Entendido' } = {}) {
-  return _spcdShowDialog({ type, title, body: message, okText, showCancel: false });
-}
-function spcdPrompt(message, defaultValue='', { title='Ingres\u00e1 un valor', okText='Confirmar', cancelText='Cancelar', placeholder='' } = {}) {
-  return _spcdShowDialog({
-    type: 'prompt', title, body: message,
-    okText, cancelText, showCancel: true,
-    input: { type: 'text', defaultValue, placeholder }
-  });
-}
+// SPCD DIALOG (spcdConfirm / spcdAlert / spcdPrompt) vive ahora en spcd-dialog.js
 
 // ============================================================
 // MODO URL — ?modo=pedidos hace que:

@@ -1,0 +1,149 @@
+/* ============================================================
+   SPCD — SISTEMA DE DIÁLOGOS (Fase 4 del refactor)
+   ------------------------------------------------------------
+   Estilos para spcdConfirm / spcdAlert / spcdPrompt, utilizados
+   como reemplazo estilizado de los confirm/alert/prompt nativos
+   del navegador.
+
+   Auto-contenido: no depende de .modal-overlay. Cualquier módulo
+   que importe spcd-dialog.js + spcd-dialog.css puede usar los
+   diálogos sin HTML previo (el JS inyecta el overlay al cargar).
+   ============================================================ */
+
+/* ── Overlay (fondo oscuro) ───────────────────────────────── */
+.spcd-dialog-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(15,23,42,.85);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.spcd-dialog-overlay.active { display: flex; }
+
+/* ── Caja del diálogo ─────────────────────────────────────── */
+.spcd-dialog {
+  width: 100%; max-width: 460px;
+  background: linear-gradient(180deg, rgba(30,58,138,.15), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(56,189,248,.08) inset;
+  overflow: hidden;
+  animation: fadeUp .25s ease;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.spcd-dialog-header {
+  padding: 16px 22px;
+  background: linear-gradient(135deg, rgba(30,58,138,.4), rgba(15,23,42,.6));
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.spcd-dialog-icon {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+.spcd-dialog-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+/* ── Variantes por tipo (confirm/alert/error/prompt/success) ── */
+.spcd-dialog.type-confirm  .spcd-dialog-icon  { background: rgba(56,189,248,.15);  color: #38BDF8;             border: 1px solid rgba(56,189,248,.4); }
+.spcd-dialog.type-alert    .spcd-dialog-icon  { background: rgba(245,158,11,.15);  color: #F59E0B;             border: 1px solid rgba(245,158,11,.4); }
+.spcd-dialog.type-error    .spcd-dialog-icon  { background: rgba(239,68,68,.15);   color: var(--red);          border: 1px solid rgba(239,68,68,.4); }
+.spcd-dialog.type-prompt   .spcd-dialog-icon  { background: rgba(34,219,174,.15);  color: var(--cyan);         border: 1px solid rgba(34,219,174,.4); }
+.spcd-dialog.type-success  .spcd-dialog-icon  { background: rgba(85,231,139,.15);  color: var(--green);        border: 1px solid rgba(85,231,139,.4); }
+
+.spcd-dialog.type-confirm  .spcd-dialog-title { color: #38BDF8; }
+.spcd-dialog.type-alert    .spcd-dialog-title { color: #F59E0B; }
+.spcd-dialog.type-error    .spcd-dialog-title { color: var(--red); }
+.spcd-dialog.type-prompt   .spcd-dialog-title { color: var(--cyan); }
+.spcd-dialog.type-success  .spcd-dialog-title { color: var(--green); }
+
+/* ── Body ─────────────────────────────────────────────────── */
+.spcd-dialog-body {
+  padding: 20px 22px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.spcd-dialog-body strong { color: #38BDF8; }
+
+/* ── Input (para spcdPrompt) ──────────────────────────────── */
+.spcd-dialog-input {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(15,23,42,.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s;
+}
+.spcd-dialog-input:focus { border-color: var(--cyan); }
+
+/* ── Footer + botones ─────────────────────────────────────── */
+.spcd-dialog-footer {
+  padding: 14px 22px;
+  background: rgba(15,23,42,.4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.spcd-dialog-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .2s;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.spcd-dialog-btn-primary {
+  background: linear-gradient(135deg, #38BDF8, var(--blue));
+  color: #fff;
+  border-color: rgba(56,189,248,.5);
+  box-shadow: 0 2px 10px rgba(56,189,248,.25);
+}
+.spcd-dialog-btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+.spcd-dialog.type-alert   .spcd-dialog-btn-primary { background: linear-gradient(135deg, #F59E0B, #b45309);  box-shadow: 0 2px 10px rgba(245,158,11,.25); }
+.spcd-dialog.type-error   .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--red), #991b1b); box-shadow: 0 2px 10px rgba(239,68,68,.25); }
+.spcd-dialog.type-prompt  .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--cyan), #0891b2); box-shadow: 0 2px 10px rgba(34,219,174,.25); }
+.spcd-dialog.type-success .spcd-dialog-btn-primary { background: linear-gradient(135deg, var(--green), #059669); box-shadow: 0 2px 10px rgba(85,231,139,.25); }
+
+.spcd-dialog-btn-secondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+}
+.spcd-dialog-btn-secondary:hover {
+  color: var(--text);
+  border-color: #64748B;
+}
