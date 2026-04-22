@@ -624,37 +624,10 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="spcd-utils.js"></script>
 <script>
 /* -- STORAGE (IndexedDB) -- */
-const SPCD_DB = 'spcd_storage';
-const SPCD_STORE = 'data';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(SPCD_DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(SPCD_STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function dbSave(key, value) {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(SPCD_STORE, 'readwrite');
-    tx.objectStore(SPCD_STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  }));
-}
-
-function dbLoad(key) {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(SPCD_STORE, 'readonly');
-    const req = tx.objectStore(SPCD_STORE).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  }));
-}
+/* SPCD_DB, SPCD_STORE, openDB, dbLoad, dbSave viven ahora en spcd-utils.js */
 
 /* -- SUPABASE CONFIG -- */
 const SUPABASE_URL = 'https://erjdncsnomwymjiaslpx.supabase.co';
