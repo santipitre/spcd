@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0F172A"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
   <link rel="stylesheet" href="spcd-components.css"/>
+  <link rel="stylesheet" href="spcd-dialog.css"/>
   <style>
     /* Variables especificas del modulo tecnico (las comunes vienen de spcd-theme.css) */
     :root {
@@ -589,6 +590,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="spcd-utils.js"></script>
+<script src="spcd-dialog.js"></script>
 
 <script>
 /* ════════════════════════════════════════
@@ -954,7 +956,7 @@ function closeModal() {
    Cálculo: F/ Arribo → Fin Estudio.
 ════════════════════════════════════════ */
 function openTiempoOperadoresPage() {
-  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  if (!filtered.length) { spcdAlert('No hay datos cargados.', { type:'alert', title:'Sin datos' }); return; }
   const realizados = filtered.filter(r => r['Estado'] === 'REA' && !esCamaraGamma(r));
 
   // Agrupar por Tecnico IN, excluyendo los admin operators y los vacíos
@@ -1022,7 +1024,7 @@ function closeTiempoAdminModal() {
    MODAL: PROMEDIO ESTUDIOS — Desglose por Fecha, Servicio y Equipo
 ════════════════════════════════════════ */
 function openPromedioEstudiosPage() {
-  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  if (!filtered.length) { spcdAlert('No hay datos cargados.', { type:'alert', title:'Sin datos' }); return; }
   const realizados = filtered.filter(r => r['Estado'] === 'REA');
 
   // Rango de fechas usado
@@ -1238,7 +1240,7 @@ function openPromedioEstudiosPage() {
         const idx = elements[0].index;
         const d = dateObjs[idx];
         const fullDate = dowFull[d.getDay()] + ' ' + d.toLocaleDateString('es-AR');
-        alert(`${fullDate}\n${values[idx]} estudios realizados`);
+        spcdAlert(`${values[idx]} estudios realizados`, { type:'info', title: fullDate });
       },
       onHover: (evt, elements) => {
         evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
@@ -1446,7 +1448,7 @@ function clearEquiposHistorial() {
 }
 
 function openEquiposActivosPage() {
-  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  if (!filtered.length) { spcdAlert('No hay datos cargados.', { type:'alert', title:'Sin datos' }); return; }
   const realizados = filtered.filter(r => r['Estado'] === 'REA');
 
   const equipos = [...new Set(
@@ -1555,7 +1557,7 @@ function closeReactivarModal() {
 }
 function confirmarMotivoDesactivacion() {
   const motivo = document.getElementById('motivo-textarea').value.trim();
-  if (!motivo) { alert('Ingresá un motivo.'); return; }
+  if (!motivo) { spcdAlert('Ingresá un motivo.', { type:'alert', title:'Falta motivo' }); return; }
   if (!_equipoEnCambio) { closeMotivoModal(); return; }
   const inactivos = loadEquiposInactivos();
   const user = (window.__spcd_user && (window.__spcd_user.nombre || window.__spcd_user.username)) || 'Admin';
@@ -1647,15 +1649,19 @@ function closeEquiposHistorialModal() {
   document.getElementById('equipos-historial-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-function limpiarHistorialEquipos() {
+async function limpiarHistorialEquipos() {
   if (!isAdminTec()) return;
-  if (!confirm('¿Eliminar todo el historial? Esta acción no se puede deshacer.')) return;
+  const ok = await spcdConfirm(
+    '¿Eliminar todo el historial? Esta acción NO se puede deshacer.',
+    { title:'Borrar historial', okText:'Sí, eliminar', cancelText:'Cancelar', type:'alert' }
+  );
+  if (!ok) return;
   clearEquiposHistorial();
   openEquiposHistorialModal();
 }
 async function exportarHistorialCSV(share) {
   const hist = loadEquiposHistorial();
-  if (!hist.length) { alert('No hay historial para exportar.'); return; }
+  if (!hist.length) { spcdAlert('No hay historial para exportar.', { type:'alert', title:'Sin datos' }); return; }
 
   try {
     // Paleta corporativa SPCD
@@ -1801,7 +1807,7 @@ async function exportarHistorialCSV(share) {
     }
   } catch (err) {
     console.error('Error exportando historial:', err);
-    alert('Error al generar el Excel: ' + err.message);
+    spcdAlert('Error al generar el Excel: ' + err.message, { type:'error', title:'Error al exportar' });
   }
 }
 
@@ -2119,6 +2125,9 @@ function groupBy(arr, keyFn) {
   }, {});
 }
 </script>
+<!-- Toast de notificaciones (para showToast de spcd-utils.js) -->
+<div class="toast" id="toast"></div>
+
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>

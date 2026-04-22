@@ -216,3 +216,28 @@
 }
 .ped-filtro-grp input:focus,
 .ped-filtro-grp select:focus { border-color: var(--accent, #38BDF8); }
+
+/* ============================================================
+   TOAST DE NOTIFICACIÓN (para uso con showToast(msg, type))
+   ------------------------------------------------------------
+   Requiere un <div class="toast" id="toast"></div> en el body.
+   La función showToast vive en spcd-utils.js.
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 300;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeUp .3s ease;
+  display: none;
+  max-width: 380px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+.toast.success  { background: rgba(85,231,139,.15);  border: 1px solid var(--green); color: var(--green); }
+.toast.error    { background: rgba(239,68,68,.15);   border: 1px solid var(--red);   color: var(--red); }
+.toast.warning  { background: rgba(245,158,11,.15);  border: 1px solid #F59E0B;      color: #F59E0B; }
+.toast.info     { background: rgba(56,189,248,.15);  border: 1px solid #38BDF8;      color: #38BDF8; }

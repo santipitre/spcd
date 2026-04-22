@@ -841,7 +841,7 @@
         <div class="od-icon">&#x1F4F8;</div>
         <div class="od-title">SUBIR FOTO DE REMITO</div>
         <div class="od-sub">Arrastr&aacute; o hac&eacute; click para subir la imagen del remito de Almac&eacute;n Central</div>
-        <input type="file" id="ocr-input" accept="image/*" onchange="handleOcrUpload(event)"/>
+        <input type="file" id="ocr-input" accept="image/*" capture="environment" onchange="handleOcrUpload(event)"/>
       </div>
 
       <div class="ocr-progress" id="ocr-progress">
@@ -2407,12 +2407,30 @@ function renderOcrResults() {
   }).join('');
 
   summary.innerHTML = `
-    <span>Detectados: <strong>${ocrParsedItems.length}</strong></span>
-    <span style="color:var(--green)">Encontrados: <strong>${matched}</strong></span>
-    ${unmatched > 0 ? `<span style="color:var(--red)">Sin match: <strong>${unmatched}</strong></span>` : ''}
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; gap:14px; font-size:12px;">
+        <span>Detectados: <strong>${ocrParsedItems.length}</strong></span>
+        <span style="color:var(--green)">Encontrados: <strong>${matched}</strong></span>
+        ${unmatched > 0 ? `<span style="color:var(--red)">Sin match: <strong>${unmatched}</strong></span>` : ''}
+      </div>
+      <button class="btn-secondary" onclick="ocrAgregarFilaManual()" style="padding:6px 12px; font-size:11px; border-color:rgba(34,219,174,.4); color:var(--cyan);">&#x2B; Agregar producto manualmente</button>
+    </div>
   `;
 
   document.getElementById('ocr-confirm-btn').disabled = matched === 0;
+}
+
+// Agregar una fila manual a la tabla de OCR (productos que el OCR no detect\u00f3)
+function ocrAgregarFilaManual() {
+  ocrParsedItems.push({
+    stockId: 0,
+    ocrName: '(agregado manualmente)',
+    cantidad: 1,
+    productoId: null,
+    productoNombre: null,
+    matched: false
+  });
+  renderOcrResults();
 }
 
 function ocrFixMatch(idx, prodId) {
@@ -2429,37 +2447,70 @@ function ocrFixMatch(idx, prodId) {
 async function confirmOcrRemito() {
   const remitoNro = document.getElementById('ocr-remito-nro').value.trim();
   const validItems = ocrParsedItems.filter(i => i.matched && i.cantidad > 0);
+  const invalidCount = ocrParsedItems.length - validItems.length;
 
   if (validItems.length === 0) {
-    showToast('No hay productos v\u00e1lidos para registrar', 'error');
+    await spcdAlert('No hay productos v\u00e1lidos para registrar. Asign\u00e1 un producto del cat\u00e1logo a cada fila.',
+      { type:'error', title:'Sin productos v\u00e1lidos' });
     return;
   }
+
+  const totalUnids = validItems.reduce((s, i) => s + i.cantidad, 0);
+  const confirmMsg = `Se van a registrar las siguientes entradas:\n\n` +
+    `\u2022 Productos: ${validItems.length}\n` +
+    `\u2022 Total unidades: ${totalUnids}\n` +
+    `\u2022 Remito N\u00b0: ${remitoNro || '(sin n\u00famero)'}\n` +
+    (invalidCount > 0 ? `\u2022 Ignorados (sin match): ${invalidCount}\n` : '') +
+    `\n\u00bfConfirm\u00e1s el ingreso al stock?`;
+
+  const ok = await spcdConfirm(confirmMsg, {
+    title: 'Confirmar ingreso de remito',
+    okText: 'S\u00ed, registrar ingreso',
+    cancelText: 'Revisar',
+    type: 'confirm'
+  });
+  if (!ok) return;
 
   const btn = document.getElementById('ocr-confirm-btn');
   btn.disabled = true;
   btn.textContent = 'Registrando...';
 
   try {
-    let ok = 0;
+    let ok = 0, errors = [];
     for (const item of validItems) {
-      await sbInsert('movimientos', {
-        tipo: 'ENTRADA',
-        producto_id: item.productoId,
-        cantidad: item.cantidad,
-        remito_nro: remitoNro || null,
-        usuario_id: currentUser.id,
-        observacion: 'OCR Remito - Stock ID: ' + item.stockId
-      });
-      ok++;
+      try {
+        await sbInsert('movimientos', {
+          tipo: 'ENTRADA',
+          producto_id: item.productoId,
+          cantidad: item.cantidad,
+          remito_nro: remitoNro || null,
+          usuario_id: currentUser.id,
+          observacion: 'OCR Remito - Stock ID: ' + item.stockId
+        });
+        ok++;
+      } catch(itemErr) {
+        errors.push(`${item.productoNombre || item.stockId}: ${itemErr.message}`);
+      }
     }
 
-    showToast(ok + ' movimientos registrados desde remito', 'success');
     cancelOcr();
     await Promise.all([loadStock(), loadLotes(), loadMovimientos()]);
     renderDashboard();
 
+    if (errors.length === 0) {
+      await spcdAlert(
+        `\u2714 ${ok} movimiento(s) registrados correctamente.\n\nEl stock ya est\u00e1 actualizado.`,
+        { type:'success', title:'Ingreso confirmado', okText:'Listo' }
+      );
+    } else {
+      await spcdAlert(
+        `Se registraron ${ok} de ${validItems.length} movimiento(s).\n\nErrores:\n\n${errors.map(e => '\u2022 ' + e).join('\n')}`,
+        { type:'alert', title:'Ingreso parcial', okText:'Entendido' }
+      );
+    }
+
   } catch (err) {
-    showToast('Error: ' + err.message, 'error');
+    await spcdAlert('Error inesperado: ' + err.message, { type:'error', title:'Error' });
   } finally {
     btn.disabled = false;
     btn.textContent = '\u2705 Confirmar y registrar entrada';

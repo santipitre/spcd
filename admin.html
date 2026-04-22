@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0F172A"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
   <link rel="stylesheet" href="spcd-components.css"/>
+  <link rel="stylesheet" href="spcd-dialog.css"/>
   <style>
     /* Variables especificas del modulo admin (las comunes vienen de spcd-theme.css) */
     :root {
@@ -734,6 +735,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="spcd-utils.js"></script>
+<script src="spcd-dialog.js"></script>
 <script>
 /* ══════════════════════════════════
    AUTH GUARD — requiere sesión activa
@@ -2176,7 +2178,7 @@ async function exportarInformeOperador(share) {
     }
   } catch(e) {
     console.error('Error exportando informe:', e);
-    alert('No se pudo exportar el informe. Revisá la consola.');
+    spcdAlert('No se pudo exportar el informe. Revisá la consola.', { type:'error', title:'Error al exportar' });
   }
 }
 
@@ -2804,7 +2806,7 @@ async function exportExcel(asegSuffix, share) {
 
   } catch(err) {
     console.error('Error exportando Excel:', err);
-    alert('Error al generar el Excel: ' + err.message);
+    spcdAlert('Error al generar el Excel: ' + err.message, { type:'error', title:'Error al exportar' });
   }
 }
 
@@ -2812,6 +2814,9 @@ function emptyState(icon, text) {
   return `<div class="empty-state"><div class="e-icon">${icon}</div><div class="e-text">${text}</div></div>`;
 }
 </script>
+<!-- Toast de notificaciones (para showToast de spcd-utils.js) -->
+<div class="toast" id="toast"></div>
+
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>

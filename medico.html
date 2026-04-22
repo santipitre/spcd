@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0F172A"/>
   <link rel="stylesheet" href="spcd-theme.css"/>
   <link rel="stylesheet" href="spcd-components.css"/>
+  <link rel="stylesheet" href="spcd-dialog.css"/>
   <style>
     /* Variables especificas del modulo medico (las comunes vienen de spcd-theme.css) */
     :root {
@@ -683,6 +684,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="spcd-utils.js"></script>
+<script src="spcd-dialog.js"></script>
 
 <script>
 /* ═══════════════════════════════════
@@ -1548,7 +1550,7 @@ async function exportRealizadosExcel(share) {
         tipoExport: 'realizados'
       });
     }
-  } catch(err) { console.error('Export error:', err); alert('Error al exportar: ' + err.message); }
+  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
 }
 
 /* ═══════════════════════════════════
@@ -1748,12 +1750,12 @@ async function exportTiempoExcel(share) {
         tipoExport: 'tiempo'
       });
     }
-  } catch(err) { console.error('Export error:', err); alert('Error al exportar: ' + err.message); }
+  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
 }
 
 /* ── Menú de exportación ── */
 function handleExportClick() {
-  if (!modalFiltered.length) { alert('No hay datos para exportar'); return; }
+  if (!modalFiltered.length) { spcdAlert('No hay datos para exportar', { type:'alert', title:'Sin datos' }); return; }
   const menu = document.getElementById('export-menu');
 
   // Si NO es pendientes → menú simple con 2 opciones (descargar / compartir)
@@ -1859,7 +1861,7 @@ function getExportSubtitle(groupFilter) {
 
 /* ── Generar y descargar Excel. share=true abre diálogo compartir ── */
 async function exportExcel(groupFilter, share) {
-  if (!modalFiltered.length) { alert('No hay datos para exportar'); return; }
+  if (!modalFiltered.length) { spcdAlert('No hay datos para exportar', { type:'alert', title:'Sin datos' }); return; }
   try {
 
   const isPend = (modalTipo === 'pendientes');
@@ -1881,7 +1883,7 @@ async function exportExcel(groupFilter, share) {
   const dataRows = isPend ? getExportRows(groupFilter) : deduplicarPorTurno(modalFiltered);
   const subtitle = isPend ? getExportSubtitle(groupFilter) : null;
 
-  if (!dataRows.length) { alert('No hay datos en este grupo'); return; }
+  if (!dataRows.length) { spcdAlert('No hay datos en este grupo', { type:'alert', title:'Sin datos' }); return; }
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SP Control Data';
@@ -2014,10 +2016,13 @@ async function exportExcel(groupFilter, share) {
     });
   }
 
-  } catch(err) { console.error('Export error:', err); alert('Error al exportar: ' + err.message); }
+  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
 }
 
 </script>
+<!-- Toast de notificaciones (para showToast de spcd-utils.js) -->
+<div class="toast" id="toast"></div>
+
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>
