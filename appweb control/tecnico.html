@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>SP Control Data · Técnico</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#0F172A"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #0F172A;
+      --blue-d: #1E3A8A;
+      --blue:   #3B82F6;
+      --cyan:   #22DBAE;
+      --green:  #55e78B;
+      --red:    #F87171;
+      --amber:  #FBBF24;
+      --glass:  rgba(30,58,138,.22);
+      --glass2: rgba(15,23,42,.6);
+      --border: rgba(59,130,246,.2);
+      --border-c:rgba(34,219,174,.25);
+      --text:   #E2E8F0;
+      --muted:  #94A3B8;
+      --surface:#111827;
+    }
+    html, body {
+      min-height: 100%; background: var(--navy);
+      color: var(--text); font-family: 'Inter', sans-serif;
+      font-size: 14px; line-height: 1.5;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(15,23,42,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 16px; height: 56px;
+    }
+    .topbar-logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px; font-weight: 700; color: var(--cyan);
+      letter-spacing: 2px; white-space: nowrap;
+    }
+    .topbar-sep { width: 1px; height: 24px; background: var(--border); }
+    .topbar-crumbs {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted); letter-spacing: 1px;
+    }
+    .topbar-crumbs .crumb-active {
+      color: var(--blue); font-weight: 600;
+    }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .sede-chip {
+      padding: 4px 12px; border-radius: 4px;
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.3);
+      font-size: 11px; letter-spacing: 2px;
+      color: var(--blue); text-transform: uppercase;
+    }
+    .btn-back-top {
+      padding: 6px 14px; border-radius: 6px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: 11px; letter-spacing: 1px;
+      cursor: pointer; transition: all .2s; text-transform: uppercase;
+      text-decoration: none; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-back-top:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* ── LAYOUT ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ── UPLOAD ZONE ── */
+    #upload-zone {
+      margin-bottom: 28px;
+      border: 1.5px dashed var(--border-c);
+      border-radius: 12px;
+      padding: 36px;
+      text-align: center;
+      transition: all .3s;
+      background: rgba(34,219,174,.03);
+    }
+    #upload-zone.has-data {
+      border-color: rgba(34,219,174,.4); background: rgba(34,219,174,.06);
+    }
+    .upload-icon { font-size: 32px; margin-bottom: 10px; }
+    .upload-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px; letter-spacing: 2px; color: var(--cyan);
+    }
+    .upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .upload-label {
+      display: inline-block; margin-top: 16px;
+      padding: 10px 28px; border-radius: 6px;
+      background: rgba(34,219,174,.1); border: 1px solid var(--border-c);
+      color: var(--cyan); font-size: 12px; letter-spacing: 2px;
+      text-transform: uppercase; cursor: pointer; transition: all .2s;
+    }
+    .upload-label:hover { background: rgba(34,219,174,.2); }
+    #file-input { display: none; }
+    #data-status {
+      margin-top: 10px; font-size: 12px;
+      color: var(--muted); letter-spacing: 1px;
+    }
+
+    /* ── FILTERS ── */
+    .filters-bar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 24px; align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-label {
+      font-size: 10px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .filter-input, .filter-select {
+      padding: 8px 12px; border-radius: 6px;
+      background: var(--glass); border: 1px solid var(--border);
+      color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .filter-input:focus, .filter-select:focus { border-color: var(--cyan); }
+    .filter-select option { background: var(--navy); color: var(--text); }
+    .btn-apply {
+      padding: 8px 20px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--blue-d), var(--blue));
+      border: none; color: #fff; font-size: 12px;
+      letter-spacing: 2px; text-transform: uppercase;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: opacity .2s; align-self: flex-end;
+    }
+    .btn-apply:hover { opacity: .85; }
+    .btn-reset {
+      padding: 8px 16px; border-radius: 6px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px; letter-spacing: 1px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: all .2s; align-self: flex-end;
+      text-transform: uppercase;
+    }
+    .btn-reset:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px; margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+      position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      cursor: pointer;
+    }
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+    }
+    .kpi-card.cyan::after  { background: linear-gradient(90deg, var(--cyan), transparent); }
+    .kpi-card.blue::after  { background: linear-gradient(90deg, var(--blue), transparent); }
+    .kpi-card.green::after { background: linear-gradient(90deg, var(--green), transparent); }
+    .kpi-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
+    .kpi-card.red::after   { background: linear-gradient(90deg, var(--red), transparent); }
+
+    .kpi-label {
+      font-size: 10px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .kpi-val {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 38px; font-weight: 700; line-height: 1;
+    }
+    .kpi-card.cyan  .kpi-val  { color: var(--cyan); }
+    .kpi-card.blue  .kpi-val  { color: var(--blue); }
+    .kpi-card.green .kpi-val  { color: var(--green); }
+    .kpi-card.amber .kpi-val  { color: var(--amber); }
+    .kpi-card.red   .kpi-val  { color: var(--red); }
+    .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .kpi-icon {
+      position: absolute; right: 16px; top: 16px;
+      font-size: 28px; opacity: .15;
+    }
+    .kpi-hint {
+      font-size: 10px; color: var(--muted); opacity: .6; margin-top: 4px;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* ── CHARTS ROW ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+    }
+    .chart-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px; letter-spacing: 2px;
+      color: var(--cyan); text-transform: uppercase;
+      margin-bottom: 16px; display: flex;
+      align-items: center; gap: 8px;
+    }
+    .chart-title::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--cyan); border-radius: 2px;
+    }
+    canvas { max-height: 220px; }
+
+    /* ── SECOND ROW CHARTS ── */
+    .charts-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .charts-row-3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .charts-row-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+    }
+    .table-header {
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px; letter-spacing: 2px;
+      color: var(--cyan); text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .table-header-title::before {
+      content: ''; width: 3px; height: 14px;
+      background: var(--cyan); border-radius: 2px;
+    }
+    .table-count {
+      font-size: 11px; color: var(--muted); letter-spacing: 1px;
+    }
+    .table-wrap { overflow-x: auto; max-height: 360px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { position: sticky; top: 0; background: var(--surface); z-index: 2; }
+    th {
+      padding: 10px 14px; text-align: left;
+      font-size: 10px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+      font-weight: 600; white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 14px; font-size: 12px;
+      border-bottom: 1px solid rgba(30,58,138,.2);
+      white-space: nowrap; color: var(--text);
+    }
+    tr:hover td { background: rgba(34,219,174,.04); }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 3px; font-size: 10px;
+      letter-spacing: 1px; font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-rea  { background: rgba(34,219,174,.15); color: var(--cyan); }
+    .badge-sus  { background: rgba(248,113,113,.15); color: var(--red); }
+    .badge-pend { background: rgba(251,191,36,.15);  color: var(--amber); }
+    .badge-other{ background: rgba(148,163,184,.1);  color: var(--muted); }
+
+    /* ── TOP LIST ── */
+    .rank-list { display: flex; flex-direction: column; gap: 8px; }
+    .rank-item {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .rank-num {
+      width: 20px; font-family: 'Rajdhani', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--muted);
+      flex-shrink: 0; text-align: right;
+    }
+    .rank-label { flex: 1; font-size: 12px; color: var(--text); min-width: 0; }
+    .rank-label span {
+      display: block; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rank-bar-wrap {
+      flex: 1; height: 6px; background: rgba(30,58,138,.4);
+      border-radius: 3px; overflow: hidden; min-width: 60px;
+    }
+    .rank-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+    .rank-val {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--cyan);
+      flex-shrink: 0; width: 42px; text-align: right;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .e-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state .e-text { font-size: 13px; letter-spacing: 1px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── ANIMATIONS ── */
+    .fade-in { animation: fadeIn .4s ease both; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.6); display:flex; justify-content:flex-end; opacity:0; pointer-events:none; transition:opacity .3s; }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal-drawer { width:80%; max-width:1100px; height:100%; background:var(--navy); border-left:1px solid var(--border); display:flex; flex-direction:column; transform:translateX(100%); transition:transform .35s ease; }
+    .modal-overlay.open .modal-drawer { transform:translateX(0); }
+    .modal-head { display:flex; align-items:center; gap:16px; padding:20px 24px; border-bottom:1px solid var(--border); position:relative; }
+    .modal-bar { position:absolute; top:0; left:0; right:0; height:3px; }
+    .modal-head-title { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; letter-spacing:2px; color:var(--text); }
+    .modal-head-count { font-size:11px; color:var(--muted); letter-spacing:1px; margin-top:2px; }
+    .modal-close { background:transparent; border:1px solid var(--border); color:var(--muted); width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:14px; transition:all .2s; }
+    .modal-close:hover { border-color:var(--red); color:var(--red); }
+    .modal-toolbar { display:flex; gap:10px; padding:12px 24px; border-bottom:1px solid var(--border); }
+    .modal-search { flex:1; padding:8px 14px; border-radius:6px; background:var(--glass); border:1px solid var(--border); color:var(--text); font-size:12px; font-family:'Inter',sans-serif; outline:none; }
+    .modal-search:focus { border-color:var(--cyan); }
+    .btn-export { padding:8px 16px; border-radius:6px; background:rgba(34,219,174,.1); border:1px solid rgba(34,219,174,.3); color:var(--cyan); font-size:11px; letter-spacing:1px; cursor:pointer; white-space:nowrap; font-family:'Inter',sans-serif; transition:all .2s; }
+    .btn-export:hover { background:rgba(34,219,174,.2); }
+    .modal-body { flex:1; overflow:auto; padding:0; }
+    .modal-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .modal-table th { position:sticky; top:0; background:rgba(15,23,42,.95); padding:10px 12px; text-align:left; font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; border-bottom:1px solid var(--border); }
+    .modal-table td { padding:8px 12px; border-bottom:1px solid rgba(34,219,174,.06); color:var(--text); white-space:nowrap; }
+    .modal-table tr:hover td { background:rgba(59,130,246,.06); }
+    .modal-footer { display:flex; justify-content:space-between; padding:10px 24px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="index.html" class="topbar-logo" style="text-decoration:none">SP·CD</a>
+  <div class="topbar-sep"></div>
+  <div class="topbar-crumbs">
+    <span>Inicio</span><span>›</span>
+    <span id="bc-sede">Sede</span><span>›</span>
+    <span class="crumb-active">TÉCNICO</span>
+  </div>
+  <div class="topbar-right">
+    <div class="sede-chip" id="top-sede">—</div>
+    <a href="index.html?screen=roles" class="btn-back-top">← Volver</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ESTADO DATOS -->
+  <div id="upload-zone">
+    <svg viewBox="0 0 200 230" width="120" height="138" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:8px">
+      <rect x="10" y="10" width="180" height="160" rx="24" fill="#0a1628" stroke="#1e3a8a" stroke-width="2"/>
+      <rect x="40" y="35" width="120" height="80" rx="6" fill="none" stroke="#3B82F6" stroke-width="3.5"/>
+      <rect x="90" y="115" width="20" height="14" rx="2" fill="#3B82F6"/>
+      <rect x="75" y="127" width="50" height="5" rx="2" fill="#3B82F6"/>
+      <path d="M82 58 Q100 52 118 58" fill="none" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M84 65 Q100 60 116 65" fill="none" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M86 72 Q100 67 114 72" fill="none" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M88 79 Q100 74 112 79" fill="none" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M90 86 Q100 82 110 86" fill="none" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="100" y1="52" x2="100" y2="56" stroke="#22DBAE" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="97" y="88" width="6" height="5" rx="1" fill="#22DBAE"/>
+      <rect x="97" y="95" width="6" height="5" rx="1" fill="#22DBAE"/>
+      <rect x="97" y="102" width="6" height="5" rx="1" fill="#22DBAE"/>
+      <text x="100" y="200" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="15" font-weight="700" fill="#22DBAE" letter-spacing="2">MÓDULO</text>
+      <text x="100" y="222" text-anchor="middle" font-family="Rajdhani,sans-serif" font-size="15" font-weight="700" fill="#22DBAE" letter-spacing="2">TÉCNICO</text>
+    </svg>
+    <div class="upload-sub" id="upload-sub-text">Cargando datos...</div>
+    <div id="data-status"></div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filters-bar" id="filters-bar" style="display:none">
+    <div class="filter-group">
+      <span class="filter-label">Fecha desde</span>
+      <input type="date" id="f-desde" class="filter-input"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Fecha hasta</span>
+      <input type="date" id="f-hasta" class="filter-input"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Equipo</span>
+      <select id="f-equipo" class="filter-select">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Técnico</span>
+      <select id="f-tecnico" class="filter-select">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <button class="btn-apply" onclick="applyFilters()">Aplicar</button>
+    <button class="btn-reset" onclick="resetFilters()">Limpiar</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid fade-in" id="kpi-grid">
+    <div class="kpi-card cyan" onclick="openModal('total')">
+      <div class="kpi-icon">🔬</div>
+      <div class="kpi-label">Estudios Realizados</div>
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-total-sub">Cargá un Excel para ver</div>
+      <div class="kpi-hint">ver detalle →</div>
+    </div>
+    <div class="kpi-card blue" onclick="openTiempoOperadoresPage()">
+      <div class="kpi-icon">⏱</div>
+      <div class="kpi-label">Tiempo Promedio / Estudio</div>
+      <div class="kpi-val" id="kpi-tiempo">—</div>
+      <div class="kpi-sub" id="kpi-tiempo-sub">min promedio</div>
+      <div class="kpi-hint">ver detalle →</div>
+    </div>
+    <div class="kpi-card green" onclick="openPromedioEstudiosPage()">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Promedio Estudios</div>
+      <div class="kpi-val" id="kpi-diario">—</div>
+      <div class="kpi-sub" id="kpi-diario-sub">estudios / día en el rango</div>
+      <div class="kpi-hint">ver desglose →</div>
+    </div>
+    <div class="kpi-card amber" onclick="openEquiposActivosPage()">
+      <div class="kpi-icon">⚙️</div>
+      <div class="kpi-label">Equipos Activos</div>
+      <div class="kpi-val" id="kpi-equipos">—</div>
+      <div class="kpi-sub" id="kpi-equipos-sub">en el período</div>
+      <div class="kpi-hint">ver detalle →</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="charts-row-3 fade-in">
+    <div class="chart-card">
+      <div class="chart-title">Top Prestaciones</div>
+      <div class="rank-list" id="rank-prestaciones">
+        <div class="empty-state"><div class="e-icon">📋</div><div class="e-text">Sin datos</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Estudios por Equipo</div>
+      <div class="rank-list" id="rank-equipos">
+        <div class="empty-state"><div class="e-icon">⚙️</div><div class="e-text">Sin datos</div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Tiempo Prom. por Equipo</div>
+      <div class="rank-list" id="rank-tiempos">
+        <div class="empty-state"><div class="e-icon">⏱</div><div class="e-text">Sin datos</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIEMPO PROMEDIO POR TÉCNICO IN -->
+  <div class="chart-card fade-in" style="margin-bottom:24px;">
+    <div class="chart-title">Tiempo Promedio por Técnico IN &nbsp;<span style="font-size:10px; color:var(--muted); letter-spacing:1px;">(F/ Arribo → Fin Estudio)</span></div>
+    <div class="rank-list" id="rank-tiempo-tecnicos">
+      <div class="empty-state"><div class="e-icon">⏱</div><div class="e-text">Sin datos</div></div>
+    </div>
+  </div>
+
+
+</div><!-- /main -->
+
+<!-- MODAL DRAWER -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-drawer" id="modal-drawer">
+    <div class="modal-head">
+      <div class="modal-bar" id="modal-bar"></div>
+      <div style="flex:1">
+        <div class="modal-head-title" id="modal-title">Detalle</div>
+        <div class="modal-head-count" id="modal-count"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-toolbar">
+      <input class="modal-search" id="modal-search" type="text" placeholder="🔍  Buscar..." oninput="filterModal(this.value)"/>
+      <button class="btn-export" onclick="exportExcel(false)">⬇ Exportar Excel</button>
+      <button class="btn-export" style="margin-left:6px;" onclick="exportExcel(true)" title="Descargar y compartir">📤 Compartir</button>
+    </div>
+    <div class="modal-body">
+      <table class="modal-table">
+        <thead><tr>
+          <th>Fecha</th><th>Turno N°</th><th>Paciente</th><th>Documento</th>
+          <th>Prestación</th><th>Equipo</th><th>Estado</th><th>Duración</th>
+        </tr></thead>
+        <tbody id="modal-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <span id="modal-footer-count"></span>
+      <span>Presioná <kbd style="background:var(--glass);padding:1px 6px;border-radius:3px;border:1px solid var(--border)">Esc</kbd> para cerrar</span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TIEMPO PROMEDIO ADMIN OPERATORS -->
+<div class="modal-overlay" id="tiempo-admin-overlay" onclick="if(event.target===this)closeTiempoAdminModal()">
+  <div class="modal-drawer" style="max-width:640px;">
+    <div class="modal-head">
+      <div class="modal-bar" style="background:var(--blue);"></div>
+      <div style="flex:1">
+        <div class="modal-head-title">Tiempo Promedio por T&eacute;cnico IN</div>
+        <div class="modal-head-count" style="font-size:11px; color:var(--muted);">F/ Arribo &rarr; Fin Estudio</div>
+      </div>
+      <button class="modal-close" onclick="closeTiempoAdminModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 24px;">
+      <div id="tiempo-admin-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PROMEDIO ESTUDIOS (desglose por fecha / servicio / equipo) -->
+<div class="modal-overlay" id="promedio-estudios-overlay" onclick="if(event.target===this)closePromedioEstudiosModal()">
+  <div class="modal-drawer" style="max-width:760px;">
+    <div class="modal-head">
+      <div class="modal-bar" style="background:var(--green);"></div>
+      <div style="flex:1">
+        <div class="modal-head-title">Promedio de Estudios &mdash; Desglose</div>
+        <div class="modal-head-count" style="font-size:11px; color:var(--muted);" id="promedio-estudios-meta"></div>
+      </div>
+      <button class="modal-close" onclick="closePromedioEstudiosModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 24px;">
+      <div id="promedio-estudios-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EQUIPOS ACTIVOS (listado con estado) -->
+<div class="modal-overlay" id="equipos-activos-overlay" onclick="if(event.target===this)closeEquiposActivosModal()">
+  <div class="modal-drawer" style="max-width:560px;">
+    <div class="modal-head">
+      <div class="modal-bar" style="background:var(--amber);"></div>
+      <div style="flex:1">
+        <div class="modal-head-title">Equipos</div>
+        <div class="modal-head-count" style="font-size:11px; color:var(--muted);" id="equipos-activos-meta"></div>
+      </div>
+      <button onclick="openEquiposHistorialModal()" style="margin-right:8px; padding:7px 14px; border-radius:7px; font-size:11px; font-weight:600; letter-spacing:1px; cursor:pointer; background:transparent; color:var(--cyan); border:1px solid rgba(34,219,174,.4);">📜 Historial</button>
+      <button class="modal-close" onclick="closeEquiposActivosModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 24px;">
+      <div id="equipos-activos-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIAL DE ACTIVACIÓN / DESACTIVACIÓN -->
+<div class="modal-overlay" id="equipos-historial-overlay" onclick="if(event.target===this)closeEquiposHistorialModal()">
+  <div class="modal-drawer" style="max-width:680px;">
+    <div class="modal-head">
+      <div class="modal-bar" style="background:var(--cyan);"></div>
+      <div style="flex:1">
+        <div class="modal-head-title">Historial de Equipos</div>
+        <div class="modal-head-count" style="font-size:11px; color:var(--muted);" id="equipos-historial-meta"></div>
+      </div>
+      <button class="modal-close" onclick="closeEquiposHistorialModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:18px 24px;">
+      <div id="equipos-historial-body"></div>
+      <div id="equipos-historial-actions" style="margin-top:14px; display:flex; justify-content:flex-end;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL pequeño: MOTIVO de desactivación -->
+<div class="modal-overlay" id="motivo-modal-overlay" style="z-index:1100; justify-content:center; align-items:center;" onclick="if(event.target===this)closeMotivoModal()">
+  <div style="background:var(--navy); border:1px solid var(--red); border-radius:10px; padding:22px; width:100%; max-width:440px; transform:none; height:auto; box-shadow:0 20px 60px rgba(0,0,0,.6);">
+    <div style="font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; color:var(--red); margin-bottom:4px;">🚫 DESACTIVAR EQUIPO</div>
+    <div id="motivo-equipo-name" style="font-size:13px; color:var(--text); font-weight:600; margin-bottom:16px; word-break:break-word;"></div>
+    <label style="display:block; font-size:10px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-bottom:6px; font-weight:600;">Motivo de la desactivación</label>
+    <textarea id="motivo-textarea" rows="4" placeholder="Ej: equipo fuera de servicio por mantenimiento preventivo..." style="width:100%; box-sizing:border-box; background:rgba(15,23,42,.7); border:1px solid rgba(30,58,138,.5); border-radius:8px; padding:10px 12px; color:var(--text); font-size:12.5px; font-family:inherit; resize:vertical;"></textarea>
+    <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
+      <button onclick="closeMotivoModal()" style="padding:9px 16px; border-radius:8px; font-size:12px; font-weight:600; letter-spacing:1px; cursor:pointer; background:transparent; color:var(--muted); border:1px solid rgba(30,58,138,.5);">Cancelar</button>
+      <button id="motivo-confirm-btn" style="padding:9px 16px; border-radius:8px; font-size:12px; font-weight:600; letter-spacing:1px; cursor:pointer; background:var(--red); color:white; border:none;">Desactivar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL pequeño: REACTIVAR equipo -->
+<div class="modal-overlay" id="reactivar-modal-overlay" style="z-index:1100; justify-content:center; align-items:center;" onclick="if(event.target===this)closeReactivarModal()">
+  <div style="background:var(--navy); border:1px solid var(--green); border-radius:10px; padding:22px; width:100%; max-width:440px; transform:none; height:auto; box-shadow:0 20px 60px rgba(0,0,0,.6);">
+    <div style="font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; color:var(--green); margin-bottom:4px;">✓ REACTIVAR EQUIPO</div>
+    <div id="reactivar-equipo-name" style="font-size:13px; color:var(--text); font-weight:600; margin-bottom:14px; word-break:break-word;"></div>
+    <div style="background:rgba(85,231,139,.08); border-left:3px solid var(--green); border-radius:6px; padding:10px 12px; font-size:12px; color:#86EFAC; line-height:1.55;">
+      Al confirmar, el equipo pasará a estado <b>ACTIVO</b> y se borrará el motivo actual de desactivación.
+    </div>
+    <div id="reactivar-motivo-actual" style="font-size:11px; color:var(--muted); font-style:italic; margin-top:10px;"></div>
+    <div style="display:flex; gap:8px; margin-top:18px; justify-content:flex-end;">
+      <button onclick="closeReactivarModal()" style="padding:9px 16px; border-radius:8px; font-size:12px; font-weight:600; letter-spacing:1px; cursor:pointer; background:transparent; color:var(--muted); border:1px solid rgba(30,58,138,.5);">Cancelar</button>
+      <button id="reactivar-confirm-btn" style="padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer; background:var(--green); color:var(--navy); border:none;">Reactivar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SheetJS + Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<script>
+/* ════════════════════════════════════════
+   AUTH GUARD — requiere sesión activa
+════════════════════════════════════════ */
+(function() {
+  const SK = 'spcd_session', TO = 8*60*60*1000;
+  const DEFAULTS = { admin:{admin:'edit',tecnico:'edit',medico:'edit',operativo:'admin'}, consultor:{admin:'view',tecnico:'view',medico:'view',operativo:'view'}, mixto:{medico:'edit',operativo:'admin'}, solicitante:{operativo:'pedidos'} };
+  const SOLICITANTES_FORZADOS = ['TRUMBO','VFORNI','ISKAMLEC','MWSANCHEZ'];
+  try {
+    const s = JSON.parse(localStorage.getItem(SK));
+    if (!s || Date.now() - s.ts >= TO) throw 0;
+    if (s.user && s.user.username && SOLICITANTES_FORZADOS.includes(s.user.username.toUpperCase())) {
+      window.location.href = 'operativo.html'; return;
+    }
+    const pm = (s.user.permisos && s.user.permisos.modulos) ? s.user.permisos.modulos : (DEFAULTS[s.user.rol]||{});
+    if (!pm.tecnico) throw 0;
+    window.__spcd_user = s.user;
+    window.__spcd_perm = pm.tecnico;
+  } catch(e) {
+    window.location.href = 'index.html';
+  }
+})();
+
+/* ════════════════════════════════════════
+   STORAGE (IndexedDB)
+════════════════════════════════════════ */
+const SPCD_DB = 'spcd_storage';
+const SPCD_STORE = 'data';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SPCD_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(SPCD_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbLoad(key) {
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SPCD_STORE, 'readonly');
+    const req = tx.objectStore(SPCD_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+/* ════════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════════ */
+let rawData    = [];   // todos los registros cargados
+let filtered   = [];   // después de filtros
+
+/* ════════════════════════════════════════
+   INIT: recuperar de localStorage o esperar upload
+════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const sede = localStorage.getItem('spcd_sede') || '';
+  document.getElementById('bc-sede').textContent  = sede || 'Sede';
+  document.getElementById('top-sede').textContent = sede || '—';
+
+  dbLoad('spcd_data_full').then(data => {
+    if (data && data.length > 0) {
+      rawData = data;
+      onDataLoaded(rawData);
+    } else {
+      document.getElementById('upload-sub-text').textContent = '⚠️ No hay datos cargados. Volvé a Inicio y cargá el archivo Excel.';
+    }
+  }).catch(e => {
+    document.getElementById('upload-sub-text').textContent = '⚠️ Error al leer datos. Volvé a cargar el Excel desde Inicio.';
+  });
+});
+
+/* ════════════════════════════════════════
+   PIPELINE PRINCIPAL
+════════════════════════════════════════ */
+function onDataLoaded(data) {
+  const zone = document.getElementById('upload-zone');
+  zone.classList.add('has-data');
+  const uploadDate = localStorage.getItem('spcd_upload_date') || '';
+  document.getElementById('upload-sub-text').textContent =
+    `✅  ${data.length.toLocaleString()} registros cargados`;
+  document.getElementById('data-status').textContent = uploadDate ? `Última actualización: ${uploadDate}` : '';
+
+  populateFilters(data);
+  document.getElementById('filters-bar').style.display = 'flex';
+
+  filtered = [...data];
+  render(filtered);
+}
+
+/* ════════════════════════════════════════
+   POBLAR FILTROS
+════════════════════════════════════════ */
+function populateFilters(data) {
+  // Fechas
+  const fechas = data
+    .map(r => parseDate(r['Turno Fecha']))
+    .filter(Boolean)
+    .map(d => d.toISOString().slice(0, 10))
+    .sort();
+  if (fechas.length) {
+    document.getElementById('f-desde').value = fechas[0];
+    document.getElementById('f-hasta').value = fechas[fechas.length - 1];
+  }
+
+  // Equipos
+  const equipos = [...new Set(data.map(r => r['Equipo']).filter(Boolean))].sort();
+  const selEq = document.getElementById('f-equipo');
+  selEq.innerHTML = '<option value="">Todos</option>';
+  equipos.forEach(eq => {
+    const o = document.createElement('option');
+    o.value = eq; o.textContent = eq;
+    selEq.appendChild(o);
+  });
+
+  // Técnicos
+  const tecnicos = [...new Set(data.map(r => r['Tecnico IN']).filter(Boolean))].sort();
+  const selTec = document.getElementById('f-tecnico');
+  selTec.innerHTML = '<option value="">Todos</option>';
+  tecnicos.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    selTec.appendChild(o);
+  });
+}
+
+/* ════════════════════════════════════════
+   FILTROS
+════════════════════════════════════════ */
+function applyFilters() {
+  const desde   = document.getElementById('f-desde').value;
+  const hasta   = document.getElementById('f-hasta').value;
+  const equipo  = document.getElementById('f-equipo').value;
+  const tecnico = document.getElementById('f-tecnico').value;
+
+  filtered = rawData.filter(r => {
+    const fd = parseDate(r['Turno Fecha']);
+    if (!fd) return false;
+    const ds = fd.toISOString().slice(0, 10);
+    if (desde && ds < desde) return false;
+    if (hasta && ds > hasta) return false;
+    if (equipo  && r['Equipo']      !== equipo)  return false;
+    if (tecnico && r['Tecnico IN']  !== tecnico) return false;
+    return true;
+  });
+  render(filtered);
+}
+
+function resetFilters() {
+  populateFilters(rawData);
+  document.getElementById('f-equipo').value  = '';
+  document.getElementById('f-tecnico').value = '';
+  filtered = [...rawData];
+  render(filtered);
+}
+
+/* ════════════════════════════════════════
+   RENDER COMPLETO
+════════════════════════════════════════ */
+function render(data) {
+  calcKPIs(data);
+  renderRankPrestaciones(data);
+  renderRankEquipos(data);
+  renderRankTiempos(data);
+  renderRankTiempoTecnicos(data);
+}
+
+/* ════════════════════════════════════════
+   KPIs
+════════════════════════════════════════ */
+function calcKPIs(data) {
+  const realizados = data.filter(r => r['Estado'] === 'REA');
+
+  // Total
+  document.getElementById('kpi-total').textContent = realizados.length.toLocaleString();
+  document.getElementById('kpi-total-sub').textContent =
+    `de ${data.length.toLocaleString()} turnos totales`;
+
+  // Tiempo promedio por estudio (F/ Arribo → Fin Estudio) — excluye Cámara Gamma
+  const tiempos = realizados
+    .filter(r => !esCamaraGamma(r))
+    .map(r => {
+      const arribo = parseDate(r['F/ Arribo'] || r['F/Arribo']);
+      const fin    = parseDate(r['Fin Estudio'] || r['FinEstudio']);
+      if (!arribo || !fin) return null;
+      const diff = (fin - arribo) / 60000; // minutos
+      return (diff > 0 && diff < 180) ? diff : null;
+    })
+    .filter(t => t !== null);
+
+  const avgTiempo = tiempos.length
+    ? (tiempos.reduce((a, b) => a + b, 0) / tiempos.length).toFixed(1)
+    : '—';
+  document.getElementById('kpi-tiempo').textContent = avgTiempo;
+  document.getElementById('kpi-tiempo-sub').textContent =
+    `sobre ${tiempos.length.toLocaleString()} estudios con tiempo registrado`;
+
+  // Promedio de estudios / día dentro del rango asignado en los filtros
+  // (si no hay rango explícito, usamos la diferencia min/max de los datos)
+  const desdeFilter = document.getElementById('f-desde').value;
+  const hastaFilter = document.getElementById('f-hasta').value;
+  let diasRango;
+  if (desdeFilter && hastaFilter) {
+    diasRango = Math.max(1, Math.round((new Date(hastaFilter) - new Date(desdeFilter)) / 86400000) + 1);
+  } else {
+    const fechas = realizados.map(r => parseDate(r['Turno Fecha'])).filter(Boolean).sort((a,b)=>a-b);
+    if (fechas.length) {
+      diasRango = Math.max(1, Math.round((fechas[fechas.length-1] - fechas[0]) / 86400000) + 1);
+    } else {
+      diasRango = 1;
+    }
+  }
+  const promDiario = diasRango ? (realizados.length / diasRango).toFixed(1) : '—';
+  document.getElementById('kpi-diario').textContent = promDiario;
+  document.getElementById('kpi-diario-sub').textContent =
+    `${realizados.length.toLocaleString()} estudios en ${diasRango} día${diasRango!==1?'s':''}`;
+
+  // Equipos activos — lee la columna "EQUIPOS" (con fallback a variantes)
+  const equiposActivos = new Set(
+    realizados
+      .map(r => ((r['EQUIPOS'] ?? r['Equipos'] ?? r['Equipo'] ?? '') + '').trim())
+      .filter(Boolean)
+  );
+  document.getElementById('kpi-equipos').textContent = equiposActivos.size;
+  document.getElementById('kpi-equipos-sub').textContent =
+    [...equiposActivos].slice(0, 2).join(', ') || 'en el período';
+}
+
+/* ════════════════════════════════════════
+   RANK LISTS
+════════════════════════════════════════ */
+function renderRankPrestaciones(data) {
+  const realizados = data.filter(r => r['Estado'] === 'REA');
+  const byPrest = groupBy(realizados, r => r['Prestación'] || 'Sin datos');
+  const counts = {};
+  Object.entries(byPrest).forEach(([k, v]) => counts[k] = v.length);
+  renderRankList('rank-prestaciones', counts, 7, '#22DBAE');
+}
+
+function renderRankEquipos(data) {
+  const realizados = data.filter(r => r['Estado'] === 'REA');
+  const byEq = groupBy(realizados, r => r['Equipo'] || 'Sin datos');
+  const counts = {};
+  Object.entries(byEq).forEach(([k, v]) => counts[k] = v.length);
+  renderRankList('rank-equipos', counts, 7, '#3B82F6');
+}
+
+function renderRankTiempos(data) {
+  const realizados = data.filter(r => r['Estado'] === 'REA' && !esCamaraGamma(r));
+  const byEq = groupBy(realizados, r => r['Equipo'] || 'Sin datos');
+  const tiemposPorEquipo = {};
+  Object.entries(byEq).forEach(([eq, rows]) => {
+    const ts = rows.map(r => {
+      const arribo = parseDate(r['F/ Arribo'] || r['F/Arribo']);
+      const fin    = parseDate(r['Fin Estudio'] || r['FinEstudio']);
+      if (!arribo || !fin) return null;
+      const d = (fin - arribo) / 60000;
+      return (d > 0 && d < 180) ? d : null;
+    }).filter(t => t !== null);
+    if (ts.length) tiemposPorEquipo[eq] = ts.reduce((a,b) => a+b,0) / ts.length;
+  });
+  renderRankList('rank-tiempos', tiemposPorEquipo, 7, '#55e78B', ' min', false);
+}
+
+/* Operadores administrativos que NO son técnicos reales — se excluyen del ranking principal
+   pero se muestran aparte al clickear el KPI "Tiempo Promedio / Estudio" */
+const OPERADORES_ADMIN_TEC = ['JAVILA','JMONICA','ITORRES','SPITRELLA','ZABRAHAM'];
+
+/* Estudios de CÁMARA GAMMA — se excluyen de todos los cálculos de tiempo (servicio aparte). */
+function esCamaraGamma(r) {
+  const eq = (r['Equipo']||'').trim().toUpperCase();
+  return eq.startsWith('CGAM');
+}
+
+/* Servicios que se muestran en el desglose "Por Servicio".
+   Clasificación por prefijo del nombre del equipo:
+     ECOG-DOPP…  → ECOGRAFÍA DOPPLER
+     ECOG-…       → ECOGRAFÍA (sin doppler)
+     RX-…         → RAYOS X
+     RMN-…        → RESONANCIA MAGNÉTICA
+     TCMC…        → TOMOGRAFÍA
+   CGAM (Cámara Gamma) y cualquier otro se excluyen del desglose. */
+const SERVICIOS_VALIDOS = ['ECOGRAFÍA','ECOGRAFÍA DOPPLER','RAYOS X','RESONANCIA MAGNÉTICA','TOMOGRAFÍA'];
+function servicioDeEquipo(equipoRaw) {
+  const eq = (equipoRaw||'').trim().toUpperCase();
+  if (!eq) return null;
+  if (eq.startsWith('ECOG-DOPP')) return 'ECOGRAFÍA DOPPLER';
+  if (eq.startsWith('ECOG'))      return 'ECOGRAFÍA';
+  if (eq.startsWith('RX'))        return 'RAYOS X';
+  if (eq.startsWith('RMN'))       return 'RESONANCIA MAGNÉTICA';
+  if (eq.startsWith('TCMC') || eq.startsWith('TC'))       return 'TOMOGRAFÍA';
+  return null; // incluye CGAM (Cámara Gamma) y cualquier otro — se excluye del desglose
+}
+
+/* Tiempo promedio por Técnico IN (F/ Arribo → Fin Estudio) — solo técnicos reales */
+function renderRankTiempoTecnicos(data) {
+  const realizados = data.filter(r => r['Estado'] === 'REA' && !esCamaraGamma(r));
+  const byTec = groupBy(realizados, r => (r['Tecnico IN']||'').trim() || 'Sin técnico');
+  const tiemposPorTecnico = {};
+  Object.entries(byTec).forEach(([tec, rows]) => {
+    if (tec === 'Sin técnico') return; // excluir los sin asignar
+    if (OPERADORES_ADMIN_TEC.includes(tec.toUpperCase())) return; // excluir admin operators
+    const ts = rows.map(r => {
+      const arribo = parseDate(r['F/ Arribo'] || r['F/Arribo']);
+      const fin    = parseDate(r['Fin Estudio'] || r['FinEstudio']);
+      if (!arribo || !fin) return null;
+      const d = (fin - arribo) / 60000;
+      return (d > 0 && d < 180) ? d : null;
+    }).filter(t => t !== null);
+    if (ts.length >= 1) tiemposPorTecnico[tec] = ts.reduce((a,b) => a+b,0) / ts.length;
+  });
+  renderRankList('rank-tiempo-tecnicos', tiemposPorTecnico, 20, '#FBBF24', ' min', false);
+}
+
+function renderRankList(containerId, dataObj, maxItems, color, suffix = '', intVal = true) {
+  const container = document.getElementById(containerId);
+  const sorted = Object.entries(dataObj)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxItems);
+  if (!sorted.length) {
+    container.innerHTML = '<div class="empty-state"><div class="e-icon">📋</div><div class="e-text">Sin datos</div></div>';
+    return;
+  }
+  const maxVal = sorted[0][1];
+  container.innerHTML = sorted.map(([label, val], i) => {
+    const pct = (val / maxVal * 100).toFixed(0);
+    const display = intVal
+      ? Number(val).toLocaleString()
+      : Number(val).toFixed(1) + suffix;
+    return `
+      <div class="rank-item">
+        <div class="rank-num">${i+1}</div>
+        <div class="rank-label"><span title="${label}">${label}</span></div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar" style="width:${pct}%;background:${color}60"></div>
+        </div>
+        <div class="rank-val" style="color:${color}">${display}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   MODAL
+════════════════════════════════════════ */
+let modalRows = [], modalFiltered = [], modalTitle = '';
+
+function openModal(tipo) {
+  if (!filtered.length) return;
+  switch(tipo) {
+    case 'total':      modalRows = filtered.filter(r => r['Estado']==='REA'); break;
+    case 'tiempo':     modalRows = filtered.filter(r => r['Estado']==='REA' && r['Duración']); break;
+    case 'diario':     modalRows = filtered.filter(r => r['Estado']==='REA'); break;
+    case 'equipos':    modalRows = filtered.filter(r => r['Equipo'] && r['Equipo']!==''); break;
+    default:           modalRows = [...filtered];
+  }
+  // Solo Estado = REA
+  modalRows = modalRows.filter(r => r['Estado'] === 'REA');
+  const labels = {total:'Estudios Realizados',tiempo:'Estudios con Duración',diario:'Estudios Realizados',equipos:'Estudios por Equipo'};
+  const colors = {total:'var(--cyan)',tiempo:'var(--blue)',diario:'var(--green)',equipos:'var(--amber)'};
+  modalTitle = labels[tipo] || 'Detalle';
+  document.getElementById('modal-title').textContent = modalTitle;
+  document.getElementById('modal-bar').style.background = colors[tipo] || 'var(--cyan)';
+  document.getElementById('modal-search').value = '';
+  modalFiltered = [...modalRows];
+  renderModalTable(modalFiltered);
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('modal-search').focus(), 400);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════
+   MODAL: TIEMPO PROMEDIO POR TÉCNICO IN
+   Se abre al clickear el KPI "Tiempo Promedio / Estudio".
+   Muestra SOLO técnicos reales (excluye los 5 operadores administrativos).
+   Cálculo: F/ Arribo → Fin Estudio.
+════════════════════════════════════════ */
+function openTiempoOperadoresPage() {
+  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  const realizados = filtered.filter(r => r['Estado'] === 'REA' && !esCamaraGamma(r));
+
+  // Agrupar por Tecnico IN, excluyendo los admin operators y los vacíos
+  const byTec = {};
+  realizados.forEach(r => {
+    const tec = (r['Tecnico IN']||'').trim();
+    if (!tec) return;
+    if (OPERADORES_ADMIN_TEC.includes(tec.toUpperCase())) return;
+    (byTec[tec] = byTec[tec] || []).push(r);
+  });
+
+  const rows = Object.entries(byTec).map(([tec, rowsTec]) => {
+    const ts = rowsTec.map(r => {
+      const arribo = parseDate(r['F/ Arribo'] || r['F/Arribo']);
+      const fin    = parseDate(r['Fin Estudio'] || r['FinEstudio']);
+      if (!arribo || !fin) return null;
+      const d = (fin - arribo) / 60000;
+      return (d > 0 && d < 180) ? d : null;
+    }).filter(t => t !== null);
+    return {
+      tecnico: tec,
+      estudios: rowsTec.length,
+      conTiempo: ts.length,
+      avg: ts.length ? (ts.reduce((a,b)=>a+b,0) / ts.length) : null
+    };
+  }).filter(r => r.conTiempo > 0) // solo los que tienen al menos un tiempo válido
+    .sort((a,b) => b.avg - a.avg); // mayor a menor (el más lento arriba)
+
+  // Renderizar
+  const maxAvg = Math.max(...rows.map(r => r.avg || 0)) || 1;
+  const body = document.getElementById('tiempo-admin-body');
+  if (!rows.length) {
+    body.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:12px;">No hay técnicos con tiempo válido registrado.</div>';
+  } else {
+    body.innerHTML = rows.map((r, i) => {
+      const pct = (r.avg / maxAvg) * 100;
+      return `<div style="padding:14px 0; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+          <div>
+            <span style="font-family:'Rajdhani',sans-serif; font-size:11px; color:var(--muted); font-weight:700; margin-right:8px;">#${i+1}</span>
+            <span style="font-weight:700; font-size:14px; letter-spacing:1px; color:var(--text);">${r.tecnico}</span>
+          </div>
+          <div style="font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; color:var(--blue);">${r.avg.toFixed(1)} min</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted); margin-bottom:6px;">
+          <span>${r.estudios} estudios realizados</span>
+          <span>${r.conTiempo} con tiempo válido</span>
+        </div>
+        <div style="background:rgba(30,58,138,.3); height:5px; border-radius:3px; overflow:hidden;">
+          <div style="background:var(--blue); height:100%; width:${pct}%; transition:width .6s;"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('tiempo-admin-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeTiempoAdminModal() {
+  document.getElementById('tiempo-admin-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════
+   MODAL: PROMEDIO ESTUDIOS — Desglose por Fecha, Servicio y Equipo
+════════════════════════════════════════ */
+function openPromedioEstudiosPage() {
+  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  const realizados = filtered.filter(r => r['Estado'] === 'REA');
+
+  // Rango de fechas usado
+  const desdeFilter = document.getElementById('f-desde').value;
+  const hastaFilter = document.getElementById('f-hasta').value;
+  let desdeDate, hastaDate, diasRango;
+  if (desdeFilter && hastaFilter) {
+    desdeDate = new Date(desdeFilter);
+    hastaDate = new Date(hastaFilter);
+    diasRango = Math.max(1, Math.round((hastaDate - desdeDate) / 86400000) + 1);
+  } else {
+    const fechas = realizados.map(r => parseDate(r['Turno Fecha'])).filter(Boolean).sort((a,b)=>a-b);
+    if (fechas.length) {
+      desdeDate = fechas[0];
+      hastaDate = fechas[fechas.length-1];
+      diasRango = Math.max(1, Math.round((hastaDate - desdeDate) / 86400000) + 1);
+    } else {
+      diasRango = 1;
+    }
+  }
+  const promGlobal = (realizados.length / diasRango).toFixed(1);
+
+  document.getElementById('promedio-estudios-meta').innerHTML =
+    `${realizados.length.toLocaleString()} estudios · ${diasRango} d&iacute;a${diasRango!==1?'s':''} · promedio <b style="color:var(--green)">${promGlobal}</b> estudios/d&iacute;a`;
+
+  // 1) Desglose por FECHA
+  const byFecha = {};
+  realizados.forEach(r => {
+    const d = parseDate(r['Turno Fecha']);
+    if (!d) return;
+    const k = d.toISOString().slice(0,10);
+    byFecha[k] = (byFecha[k] || 0) + 1;
+  });
+  const fechasOrd = Object.entries(byFecha).sort((a,b) => b[0].localeCompare(a[0])); // más reciente primero
+  const promFechaGeneral = fechasOrd.length
+    ? (fechasOrd.reduce((s,[,v]) => s+v, 0) / fechasOrd.length).toFixed(1)
+    : '—';
+
+  // 2) Desglose por SERVICIO — lee directo la columna "Servicio" del Excel
+  //    y solo muestra los 5 servicios válidos (excluye Cámara Gamma y otros).
+  const normStr = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+  const serviciosValidos = SERVICIOS_VALIDOS.map(s => ({ raw: s, norm: normStr(s) }));
+  const byServicio = {};
+  realizados.forEach(r => {
+    const sv = normStr(r['Servicio']);
+    if (!sv) return;
+    const match = serviciosValidos.find(v => v.norm === sv);
+    if (!match) return; // excluir valores que no están en la lista permitida
+    byServicio[match.raw] = (byServicio[match.raw] || 0) + 1;
+  });
+  const serviciosOrd = Object.entries(byServicio).sort((a,b) => b[1] - a[1]);
+
+  // 3) Desglose por EQUIPO
+  const byEquipo = {};
+  realizados.forEach(r => {
+    const e = (r['Equipo']||'Sin equipo').trim();
+    byEquipo[e] = (byEquipo[e] || 0) + 1;
+  });
+  const equiposOrd = Object.entries(byEquipo).sort((a,b) => b[1] - a[1]);
+
+  // Helper para cada tabla de desglose
+  const renderBreakdown = (rows, labelSingular, colorVar) => {
+    if (!rows.length) return '<div style="color:var(--muted); font-size:11px; padding:10px 0;">Sin datos</div>';
+    const max = rows[0][1] || 1;
+    return rows.map(([label, count]) => {
+      const prom = (count / diasRango).toFixed(1);
+      const pct = (count / max) * 100;
+      return `<div style="padding:9px 0; border-bottom:1px solid rgba(30,58,138,.25);">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+          <span style="font-size:12px; color:var(--text); font-weight:600;">${label}</span>
+          <span style="font-family:'Rajdhani',sans-serif; font-size:13px; color:${colorVar}; font-weight:700;">
+            ${count.toLocaleString('es-AR')} <span style="color:var(--muted); font-size:10px; font-weight:500;">(${prom}/d&iacute;a)</span>
+          </span>
+        </div>
+        <div style="background:rgba(30,58,138,.3); height:4px; border-radius:2px; overflow:hidden;">
+          <div style="background:${colorVar}; height:100%; width:${pct}%;"></div>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  const body = document.getElementById('promedio-estudios-body');
+  body.innerHTML = `
+    <div style="display:grid; grid-template-columns: 1fr; gap:20px;">
+
+      <section>
+        <div style="font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; color:var(--cyan); text-transform:uppercase; margin-bottom:8px;">
+          📅 Por Fecha <span style="color:var(--muted); font-size:10px; letter-spacing:1px; font-weight:500;">· promedio ${promFechaGeneral} estudios/d&iacute;a con actividad</span>
+        </div>
+        <div style="background:var(--glass); border:1px solid var(--border); border-radius:8px; padding:14px; position:relative;">
+          <div style="height:280px; position:relative;">
+            <canvas id="chart-prom-fechas"></canvas>
+          </div>
+          <div id="chart-prom-analysis" style="margin-top:10px; padding:0; font-size:11.5px; color:#CBD5E1; line-height:1.55; min-height:0; transition:all .25s;"></div>
+        </div>
+      </section>
+
+      <section>
+        <div style="font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; color:var(--blue); text-transform:uppercase; margin-bottom:8px;">
+          🏥 Por Servicio
+        </div>
+        ${renderBreakdown(serviciosOrd, 'servicio', 'var(--blue)')}
+      </section>
+
+      <section>
+        <div style="font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; color:var(--amber); text-transform:uppercase; margin-bottom:8px;">
+          ⚙️ Por Equipo
+        </div>
+        ${renderBreakdown(equiposOrd, 'equipo', 'var(--amber)')}
+      </section>
+
+    </div>
+  `;
+
+  // Renderizar el gráfico de barras por fecha (orden cronológico ASC para lectura natural)
+  const fechasChrono = [...fechasOrd].reverse();
+  const dateObjs = fechasChrono.map(([iso]) => new Date(iso + 'T12:00:00'));
+  const dowShort = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dowFull  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const labels = dateObjs.map(d => dowShort[d.getDay()] + ' ' + d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit'}));
+  const values = fechasChrono.map(([,v]) => v);
+
+  // Colores por día: verde para días hábiles, ámbar suave para fin de semana
+  const weekdayBg = 'rgba(85,231,139,.75)';
+  const weekdayBorder = 'rgba(85,231,139,1)';
+  const weekendBg = 'rgba(251,191,36,.75)';
+  const weekendBorder = 'rgba(251,191,36,1)';
+  const bgColors = dateObjs.map(d => {
+    const day = d.getDay();
+    return (day === 0 || day === 6) ? weekendBg : weekdayBg;
+  });
+  const borderColors = dateObjs.map(d => {
+    const day = d.getDay();
+    return (day === 0 || day === 6) ? weekendBorder : weekdayBorder;
+  });
+  const hoverBgColors = dateObjs.map(d => {
+    const day = d.getDay();
+    return (day === 0 || day === 6) ? 'rgba(251,191,36,1)' : 'rgba(85,231,139,1)';
+  });
+
+  // Promedio global (línea de referencia horizontal)
+  const avgTotal = values.length ? (values.reduce((a,b)=>a+b,0) / values.length) : 0;
+
+  // Línea de tendencia (regresión lineal por mínimos cuadrados)
+  const n = values.length;
+  let trendData = [], trendSlope = 0, trendDeltaPct = 0;
+  if (n >= 2) {
+    let sumX=0, sumY=0, sumXY=0, sumX2=0;
+    for (let i = 0; i < n; i++) {
+      sumX += i; sumY += values[i]; sumXY += i*values[i]; sumX2 += i*i;
+    }
+    const denom = (n*sumX2 - sumX*sumX);
+    const m = denom ? (n*sumXY - sumX*sumY) / denom : 0;
+    const b = (sumY - m*sumX) / n;
+    trendData = values.map((_, i) => +(m*i + b).toFixed(2));
+    trendSlope = m;
+    // Variación total del primer al último punto de la línea de tendencia
+    if (trendData[0] > 0) trendDeltaPct = ((trendData[n-1] - trendData[0]) / trendData[0]) * 100;
+  } else {
+    trendData = values.slice();
+  }
+  const trendUp = trendSlope > 0.1;
+  const trendDown = trendSlope < -0.1;
+  // Usamos púrpura para crecimiento y rosa fuerte para caída — contrastan con verde/ámbar de las barras
+  const trendColor = trendUp ? 'rgba(167,139,250,1)' : trendDown ? 'rgba(244,114,182,1)' : 'rgba(148,163,184,1)';
+  const trendColorSoft = trendUp ? 'rgba(167,139,250,.15)' : trendDown ? 'rgba(244,114,182,.15)' : 'rgba(148,163,184,.15)';
+  const trendLabel = trendUp ? `Tendencia ▲ +${Math.abs(trendDeltaPct).toFixed(0)}%`
+                   : trendDown ? `Tendencia ▼ ${trendDeltaPct.toFixed(0)}%`
+                   : 'Tendencia estable';
+
+  if (window.__chartPromFechas) window.__chartPromFechas.destroy();
+  const ctx = document.getElementById('chart-prom-fechas').getContext('2d');
+  window.__chartPromFechas = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Estudios',
+          data: values,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: 1.5,
+          borderRadius: 5,
+          hoverBackgroundColor: hoverBgColors,
+          hoverBorderWidth: 2,
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'Tendencia',
+          data: trendData,
+          borderColor: trendColor,
+          backgroundColor: trendColorSoft,
+          borderWidth: 2.5,
+          borderDash: [],
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const d = dateObjs[idx];
+        const fullDate = dowFull[d.getDay()] + ' ' + d.toLocaleDateString('es-AR');
+        alert(`${fullDate}\n${values[idx]} estudios realizados`);
+      },
+      onHover: (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          onHover: (evt, legendItem, legend) => {
+            evt.native.target.style.cursor = 'pointer';
+            const chart = legend.chart;
+            const txt = legendItem.text || '';
+            const dim = 'rgba(100,116,139,.15)';
+            const bgDS = chart.data.datasets[0];
+            const lineDS = chart.data.datasets[1];
+            if (txt.startsWith('Lun-Vie')) {
+              bgDS.backgroundColor = dateObjs.map((d,i) => (d.getDay()===0||d.getDay()===6) ? dim : bgColors[i]);
+              lineDS.borderColor = trendColorSoft;
+            } else if (txt.startsWith('Sáb-Dom')) {
+              bgDS.backgroundColor = dateObjs.map((d,i) => (d.getDay()===0||d.getDay()===6) ? bgColors[i] : dim);
+              lineDS.borderColor = trendColorSoft;
+            } else if (txt.startsWith('Promedio')) {
+              bgDS.backgroundColor = bgColors.map(c => c.replace(/[\d.]+\)$/,'0.2)'));
+              lineDS.borderColor = trendColorSoft;
+            } else if (txt.startsWith('Tendencia')) {
+              bgDS.backgroundColor = bgColors.map(c => c.replace(/[\d.]+\)$/,'0.2)'));
+              lineDS.borderColor = trendColor;
+              lineDS.borderWidth = 4;
+            }
+            chart.update('none');
+          },
+          onLeave: (evt, legendItem, legend) => {
+            evt.native.target.style.cursor = 'default';
+            const chart = legend.chart;
+            chart.data.datasets[0].backgroundColor = bgColors;
+            chart.data.datasets[1].borderColor = trendColor;
+            chart.data.datasets[1].borderWidth = 2.5;
+            chart.update('none');
+          },
+          onClick: (evt, legendItem) => {
+            mostrarAnalisisIndicador(legendItem.text || '', {
+              values, dateObjs, avgTotal, trendData, trendSlope, trendDeltaPct, dowFull, dowShort
+            });
+          },
+          labels: {
+            color: '#E2E8F0',
+            font: { size: 11, weight: '700' },
+            padding: 10,
+            boxWidth: 14,
+            boxHeight: 12,
+            generateLabels: () => ([
+              { text: 'Lun-Vie', fillStyle: weekdayBg, strokeStyle: weekdayBorder, lineWidth: 1, fontColor: '#86EFAC', hidden: false },
+              { text: 'Sáb-Dom', fillStyle: weekendBg, strokeStyle: weekendBorder, lineWidth: 1, fontColor: '#FCD34D', hidden: false },
+              { text: `Promedio (${avgTotal.toFixed(1)})`, fillStyle: 'rgba(59,130,246,.5)', strokeStyle: 'rgba(59,130,246,1)', lineWidth: 1, fontColor: '#93C5FD', hidden: false },
+              { text: trendLabel, fillStyle: trendColorSoft, strokeStyle: trendColor, lineWidth: 2, fontColor: trendColor, hidden: false }
+            ])
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15,23,42,.96)',
+          titleColor: '#22DBAE',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(34,219,174,.5)',
+          borderWidth: 1,
+          padding: 12,
+          titleFont: { size: 12, weight: '700' },
+          bodyFont: { size: 11 },
+          filter: (item) => item.datasetIndex === 0, // solo la barra, no la línea de tendencia
+          callbacks: {
+            title: t => {
+              const d = dateObjs[t[0].dataIndex];
+              return dowFull[d.getDay()] + ' ' + d.toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+            },
+            label: t => {
+              const v = t.raw;
+              const diff = v - avgTotal;
+              const sign = diff >= 0 ? '+' : '';
+              const pctDiff = avgTotal ? ((diff / avgTotal) * 100).toFixed(0) : 0;
+              const trend = diff >= 0 ? '▲' : '▼';
+              const trendExp = trendData[t.dataIndex];
+              const deltaTrend = trendExp ? (v - trendExp).toFixed(0) : null;
+              const lines = [
+                `Estudios: ${v}`,
+                `vs promedio: ${trend} ${sign}${diff.toFixed(0)} (${sign}${pctDiff}%)`
+              ];
+              if (deltaTrend !== null) {
+                const signT = deltaTrend >= 0 ? '+' : '';
+                lines.push(`vs tendencia: ${signT}${deltaTrend} (esperaba ${trendExp.toFixed(0)})`);
+              }
+              return lines;
+            },
+            labelColor: ctx => ({
+              borderColor: borderColors[ctx.dataIndex],
+              backgroundColor: bgColors[ctx.dataIndex]
+            })
+          }
+        },
+        // Línea de promedio usando un segundo dataset "falso" (plugin simple vía annotations)
+      },
+      scales: {
+        x: {
+          ticks: { display: false }, // oculto por defecto; tooltip al hover muestra la fecha completa
+          grid: {
+            color: (ctx) => {
+              const d = dateObjs[ctx.index];
+              if (!d) return 'rgba(30,58,138,.2)';
+              // Línea vertical más marcada al inicio de cada semana (lunes)
+              const day = d.getDay();
+              return day === 1 ? 'rgba(34,219,174,.45)' : 'rgba(30,58,138,.15)';
+            },
+            lineWidth: (ctx) => {
+              const d = dateObjs[ctx.index];
+              if (!d) return 1;
+              return d.getDay() === 1 ? 1.8 : 1;
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#CBD5E1', font: { size: 10, weight: '600' } },
+          grid: { color: 'rgba(30,58,138,.25)' }
+        }
+      }
+    },
+    plugins: [{
+      // Dibujamos una línea horizontal de promedio
+      id: 'promLine',
+      afterDatasetsDraw(chart) {
+        if (!avgTotal) return;
+        const { ctx, chartArea, scales } = chart;
+        const y = scales.y.getPixelForValue(avgTotal);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(147,197,253,.9)';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Pastilla de fondo para legibilidad
+        const txt = `prom ${avgTotal.toFixed(1)}`;
+        ctx.font = 'bold 11px Inter, sans-serif';
+        const textW = ctx.measureText(txt).width;
+        const padX = 6, padY = 3;
+        const bgX = chartArea.right - textW - padX*2 - 2;
+        const bgY = y - 18;
+        ctx.fillStyle = 'rgba(15,23,42,.9)';
+        ctx.strokeStyle = 'rgba(147,197,253,.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(bgX, bgY, textW + padX*2, 16, 4) : ctx.rect(bgX, bgY, textW + padX*2, 16);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#93C5FD';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(txt, chartArea.right - padX - 2, bgY + 8);
+        ctx.restore();
+      }
+    }]
+  });
+
+  document.getElementById('promedio-estudios-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closePromedioEstudiosModal() {
+  document.getElementById('promedio-estudios-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════
+   MODAL: EQUIPOS ACTIVOS — listado con estado + toggle admin
+   Solo admin (SPITRELLA / rol=admin) puede desactivar / reactivar.
+   Al desactivar se pide un motivo obligatorio.
+   El estado se persiste en localStorage (clave spcd_equipos_inactivos).
+════════════════════════════════════════ */
+const LS_EQUIPOS_INACTIVOS = 'spcd_equipos_inactivos';
+const LS_EQUIPOS_HISTORIAL = 'spcd_equipos_historial';
+const MAX_HISTORIAL = 500;
+function isAdminTec() {
+  const u = window.__spcd_user || {};
+  return u.rol === 'admin' || (u.username || '').toUpperCase() === 'SPITRELLA';
+}
+function loadEquiposInactivos() {
+  try { return JSON.parse(localStorage.getItem(LS_EQUIPOS_INACTIVOS) || '{}'); }
+  catch { return {}; }
+}
+function saveEquiposInactivos(map) {
+  localStorage.setItem(LS_EQUIPOS_INACTIVOS, JSON.stringify(map));
+}
+function loadEquiposHistorial() {
+  try { return JSON.parse(localStorage.getItem(LS_EQUIPOS_HISTORIAL) || '[]'); }
+  catch { return []; }
+}
+function pushEquipoHistorial(entry) {
+  const list = loadEquiposHistorial();
+  list.unshift({ ts: Date.now(), ...entry });
+  while (list.length > MAX_HISTORIAL) list.pop();
+  localStorage.setItem(LS_EQUIPOS_HISTORIAL, JSON.stringify(list));
+}
+function clearEquiposHistorial() {
+  localStorage.removeItem(LS_EQUIPOS_HISTORIAL);
+}
+
+function openEquiposActivosPage() {
+  if (!filtered.length) { alert('No hay datos cargados.'); return; }
+  const realizados = filtered.filter(r => r['Estado'] === 'REA');
+
+  const equipos = [...new Set(
+    realizados
+      .map(r => ((r['EQUIPOS'] ?? r['Equipos'] ?? r['Equipo'] ?? '') + '').trim())
+      .filter(Boolean)
+  )].sort((a,b) => a.localeCompare(b, 'es'));
+
+  renderEquiposListado(equipos);
+
+  document.getElementById('equipos-activos-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function renderEquiposListado(equiposList) {
+  // Si no pasó lista (ej re-render después de toggle), la recalculo con los datos filtered
+  let equipos = equiposList;
+  if (!equipos) {
+    const realizados = (filtered||[]).filter(r => r['Estado'] === 'REA');
+    equipos = [...new Set(
+      realizados.map(r => ((r['EQUIPOS'] ?? r['Equipos'] ?? r['Equipo'] ?? '') + '').trim()).filter(Boolean)
+    )].sort((a,b) => a.localeCompare(b, 'es'));
+  }
+  const inactivos = loadEquiposInactivos();
+  const admin = isAdminTec();
+  const cntActivos = equipos.filter(e => !inactivos[e]).length;
+  const cntInactivos = equipos.filter(e => !!inactivos[e]).length;
+
+  document.getElementById('equipos-activos-meta').innerHTML =
+    `${cntActivos} activo${cntActivos!==1?'s':''} · ${cntInactivos} inactivo${cntInactivos!==1?'s':''} · ${equipos.length} total`
+    + (admin ? ' · <span style="color:var(--cyan);">🔑 modo admin: click en la tilde/cruz para cambiar</span>' : '');
+
+  const body = document.getElementById('equipos-activos-body');
+  if (!equipos.length) {
+    body.innerHTML = '<div style="padding:30px 20px; text-align:center; color:var(--muted); font-size:12px;">No se encontraron equipos en los datos.</div>';
+    return;
+  }
+
+  body.innerHTML = equipos.map(eq => {
+    const inactInfo = inactivos[eq];
+    const activo = !inactInfo;
+    const icon = activo
+      ? '<span style="color:var(--green); font-size:16px; font-weight:900;">✓</span>'
+      : '<span style="color:var(--red); font-size:16px; font-weight:900;">✗</span>';
+    const label = activo
+      ? '<span style="color:var(--green); font-size:10px; font-weight:700; letter-spacing:1.5px;">ACTIVO</span>'
+      : '<span style="color:var(--red); font-size:10px; font-weight:700; letter-spacing:1.5px;">INACTIVO</span>';
+    const bg = activo ? 'rgba(85,231,139,.15)' : 'rgba(248,113,113,.15)';
+    const br = activo ? 'rgba(85,231,139,.4)'  : 'rgba(248,113,113,.4)';
+
+    const cursor = admin ? 'cursor:pointer;' : '';
+    const title = admin ? (activo ? 'title="Click para desactivar"' : 'title="Click para reactivar"') : '';
+    const iconAttr = admin
+      ? `onclick="toggleEquipoActivo(${JSON.stringify(eq).replace(/"/g,'&quot;')})" ${title} style="width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:${bg}; border:1px solid ${br}; ${cursor} transition:all .15s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"`
+      : `style="width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:${bg}; border:1px solid ${br};"`;
+
+    const motivoLine = (!activo && inactInfo && inactInfo.motivo)
+      ? `<div style="font-size:10.5px; color:var(--muted); margin-top:3px; font-style:italic; margin-left:36px;">💬 ${inactInfo.motivo.replace(/</g,'&lt;')}${inactInfo.usuario?` <span style="opacity:.7;">— ${inactInfo.usuario}</span>`:''}</div>`
+      : '';
+
+    const nameColor = activo ? 'var(--text)' : 'var(--red)';
+    return `<div style="padding:12px 2px; border-bottom:1px solid rgba(30,58,138,.25);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span ${iconAttr}>${icon}</span>
+          <span style="font-size:12px; color:${nameColor}; font-weight:600;">${eq}</span>
+        </div>
+        ${label}
+      </div>
+      ${motivoLine}
+    </div>`;
+  }).join('');
+}
+
+// Toggle disparado al clickear el icono (solo admin)
+let _equipoEnCambio = null;
+function toggleEquipoActivo(eq) {
+  if (!isAdminTec()) return;
+  const inactivos = loadEquiposInactivos();
+  if (inactivos[eq]) {
+    // Ya estaba inactivo → modal para reactivar
+    _equipoEnCambio = eq;
+    document.getElementById('reactivar-equipo-name').textContent = eq;
+    const motivoActual = inactivos[eq].motivo || '';
+    const usuario = inactivos[eq].usuario || '';
+    document.getElementById('reactivar-motivo-actual').innerHTML =
+      motivoActual
+        ? `💬 Motivo actual: "${motivoActual.replace(/</g,'&lt;')}"${usuario?` — ${usuario}`:''}`
+        : '';
+    document.getElementById('reactivar-modal-overlay').classList.add('open');
+  } else {
+    // Estaba activo → abrir modal de motivo
+    _equipoEnCambio = eq;
+    document.getElementById('motivo-equipo-name').textContent = eq;
+    document.getElementById('motivo-textarea').value = '';
+    document.getElementById('motivo-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('motivo-textarea').focus(), 100);
+  }
+}
+function closeMotivoModal() {
+  document.getElementById('motivo-modal-overlay').classList.remove('open');
+  _equipoEnCambio = null;
+}
+function closeReactivarModal() {
+  document.getElementById('reactivar-modal-overlay').classList.remove('open');
+  _equipoEnCambio = null;
+}
+function confirmarMotivoDesactivacion() {
+  const motivo = document.getElementById('motivo-textarea').value.trim();
+  if (!motivo) { alert('Ingresá un motivo.'); return; }
+  if (!_equipoEnCambio) { closeMotivoModal(); return; }
+  const inactivos = loadEquiposInactivos();
+  const user = (window.__spcd_user && (window.__spcd_user.nombre || window.__spcd_user.username)) || 'Admin';
+  inactivos[_equipoEnCambio] = { motivo, ts: Date.now(), usuario: user };
+  saveEquiposInactivos(inactivos);
+  pushEquipoHistorial({ accion: 'desactivacion', equipo: _equipoEnCambio, motivo, usuario: user });
+  closeMotivoModal();
+  renderEquiposListado();
+}
+function confirmarReactivacion() {
+  if (!_equipoEnCambio) { closeReactivarModal(); return; }
+  const inactivos = loadEquiposInactivos();
+  const prev = inactivos[_equipoEnCambio] || null;
+  const motivoPrevio = prev ? prev.motivo : '';
+  delete inactivos[_equipoEnCambio];
+  saveEquiposInactivos(inactivos);
+  const user = (window.__spcd_user && (window.__spcd_user.nombre || window.__spcd_user.username)) || 'Admin';
+  pushEquipoHistorial({ accion: 'activacion', equipo: _equipoEnCambio, motivoPrevio, usuario: user });
+  closeReactivarModal();
+  renderEquiposListado();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const btnD = document.getElementById('motivo-confirm-btn');
+  if (btnD) btnD.addEventListener('click', confirmarMotivoDesactivacion);
+  const btnR = document.getElementById('reactivar-confirm-btn');
+  if (btnR) btnR.addEventListener('click', confirmarReactivacion);
+});
+
+function closeEquiposActivosModal() {
+  document.getElementById('equipos-activos-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════
+   MODAL: HISTORIAL DE ACTIVACIÓN / DESACTIVACIÓN DE EQUIPOS
+════════════════════════════════════════ */
+function openEquiposHistorialModal() {
+  const hist = loadEquiposHistorial();
+  const body = document.getElementById('equipos-historial-body');
+  const meta = document.getElementById('equipos-historial-meta');
+  const actions = document.getElementById('equipos-historial-actions');
+  const admin = isAdminTec();
+
+  meta.textContent = `${hist.length} evento${hist.length!==1?'s':''} registrado${hist.length!==1?'s':''}`;
+
+  if (!hist.length) {
+    body.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:12px;">No hay registros de activación o desactivación todavía.</div>';
+    actions.innerHTML = '';
+  } else {
+    body.innerHTML = hist.map(e => {
+      const fecha = new Date(e.ts);
+      const fechaStr = fecha.toLocaleDateString('es-AR') + ' ' + fecha.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const esDesact = e.accion === 'desactivacion';
+      const color = esDesact ? 'var(--red)' : 'var(--green)';
+      const bg    = esDesact ? 'rgba(248,113,113,.12)' : 'rgba(85,231,139,.12)';
+      const icon  = esDesact ? '🚫' : '✓';
+      const label = esDesact ? 'DESACTIVACIÓN' : 'ACTIVACIÓN';
+      const motivo = esDesact
+        ? (e.motivo ? `<div style="font-size:11px; color:#CBD5E1; margin-top:6px; line-height:1.55;">💬 ${String(e.motivo).replace(/</g,'&lt;')}</div>` : '')
+        : (e.motivoPrevio ? `<div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.55; font-style:italic;">↩ Reactivado. Motivo previo: "${String(e.motivoPrevio).replace(/</g,'&lt;')}"</div>` : '');
+      return `<div style="padding:12px 14px; background:${bg}; border-left:3px solid ${color}; border-radius:6px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;">
+          <div>
+            <span style="font-size:14px; margin-right:6px;">${icon}</span>
+            <span style="font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; color:${color};">${label}</span>
+            <span style="color:var(--text); font-size:12px; font-weight:700; margin-left:8px; word-break:break-word;">${e.equipo || ''}</span>
+          </div>
+          <div style="font-size:10px; color:var(--muted);">
+            ${fechaStr} · <span style="color:#93C5FD;">${e.usuario || '—'}</span>
+          </div>
+        </div>
+        ${motivo}
+      </div>`;
+    }).join('');
+    if (admin) {
+      actions.innerHTML =
+          '<button onclick="exportarHistorialCSV(false)" title="Solo descargar Excel" style="padding:8px 14px; border-radius:7px 0 0 7px; font-size:11px; font-weight:600; letter-spacing:1px; cursor:pointer; background:transparent; color:var(--cyan); border:1px solid rgba(34,219,174,.4); border-right:none;">⬇ Exportar Excel</button>'
+        + '<button onclick="exportarHistorialCSV(true)" title="Descargar y compartir por email/WhatsApp" style="padding:8px 12px; border-radius:0 7px 7px 0; font-size:13px; cursor:pointer; background:transparent; color:var(--cyan); border:1px solid rgba(34,219,174,.4); margin-right:8px;">📤</button>'
+        + '<button onclick="limpiarHistorialEquipos()" style="padding:8px 14px; border-radius:7px; font-size:11px; font-weight:600; letter-spacing:1px; cursor:pointer; background:transparent; color:var(--red); border:1px solid rgba(248,113,113,.4);">Limpiar historial</button>';
+    } else {
+      actions.innerHTML = '';
+    }
+  }
+
+  document.getElementById('equipos-historial-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeEquiposHistorialModal() {
+  document.getElementById('equipos-historial-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function limpiarHistorialEquipos() {
+  if (!isAdminTec()) return;
+  if (!confirm('¿Eliminar todo el historial? Esta acción no se puede deshacer.')) return;
+  clearEquiposHistorial();
+  openEquiposHistorialModal();
+}
+async function exportarHistorialCSV(share) {
+  const hist = loadEquiposHistorial();
+  if (!hist.length) { alert('No hay historial para exportar.'); return; }
+
+  try {
+    // Paleta corporativa SPCD
+    const NAVY='FF0F172A', BLUED='FF1E3A8A', BLUE='FF3B82F6', WHITE='FFE2E8F0',
+          RED='FFF87171', GREEN='FF55E78B', SURF='FF111827', ALT='FF1A2332',
+          CYAN='FF22DBAE', MUTED='FF64748B';
+
+    const cols   = ['Fecha','Hora','Acción','Equipo','Usuario','Motivo / Motivo previo'];
+    const colW   = [14, 10, 18, 36, 20, 48];
+    const sede   = localStorage.getItem('spcd_sede') || 'General';
+    const fecha  = new Date().toLocaleDateString('es-AR');
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'SP Control Data';
+    const ws = wb.addWorksheet('Historial Equipos');
+
+    // ─── Logo fila 1 ───
+    try {
+      const logoB64 = generateLogoPNG();
+      const logoId = wb.addImage({base64:logoB64, extension:'png'});
+      ws.addImage(logoId, { tl:{col:0,row:0}, ext:{width:220, height:46} });
+    } catch(e) {}
+
+    // ─── Fila 1: título mergeado ───
+    ws.mergeCells(1, 3, 1, cols.length);
+    const t1 = ws.getCell(1, 3);
+    t1.value = 'HISTORIAL DE EQUIPOS';
+    t1.font = { name:'Calibri', size:14, bold:true, color:{argb:WHITE} };
+    t1.alignment = { horizontal:'center', vertical:'middle' };
+    for (let i=1;i<=cols.length;i++) ws.getCell(1,i).fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+    ws.getRow(1).height = 38;
+
+    // ─── Fila 2: línea decorativa ───
+    for (let i=1;i<=cols.length;i++) {
+      const c = ws.getCell(2,i);
+      c.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+      c.border = {bottom:{style:'medium',color:{argb:BLUE}}};
+    }
+    ws.getRow(2).height = 4;
+
+    // ─── Fila 3: info ───
+    ws.mergeCells(3,1,3,cols.length);
+    const t2 = ws.getCell('A3');
+    t2.value = `  Sede: ${sede}   |   ${fecha}   |   M\u00f3dulo T\u00e9cnico   |   ${hist.length} eventos registrados`;
+    t2.font = { name:'Calibri', size:9, bold:true, color:{argb:RED} };
+    t2.fill = { type:'pattern', pattern:'solid', fgColor:{argb:BLUED} };
+    t2.alignment = { horizontal:'center', vertical:'middle' };
+    ws.getRow(3).height = 20;
+
+    // ─── Fila 4: espacio ───
+    for (let i=1;i<=cols.length;i++) ws.getCell(4,i).fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+    ws.getRow(4).height = 4;
+
+    // ─── Fila 5: headers ───
+    const hr = ws.getRow(5);
+    cols.forEach((h,i) => {
+      const cell = hr.getCell(i+1);
+      cell.value = h;
+      cell.font = { name:'Calibri', size:8, bold:true, color:{argb:WHITE} };
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:BLUE} };
+      cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+      cell.border = {
+        bottom:{style:'thin', color:{argb:CYAN}},
+        top:{style:'thin', color:{argb:BLUE}}
+      };
+    });
+    hr.height = 18;
+    colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
+
+    // Sanitizador: elimina caracteres de control que pueden romper el XML del XLSX
+    const clean = s => String(s||'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, 1000);
+
+    // ─── Datos ───
+    const thinB = {style:'thin', color:{argb:'FF334155'}};
+    const borderStyle = {
+      top:    {style:'thin', color:{argb:'FF1E293B'}},
+      bottom: thinB,
+      left:   {style:'thin', color:{argb:'FF1E293B'}},
+      right:  {style:'thin', color:{argb:'FF1E293B'}}
+    };
+    hist.forEach((e, idx) => {
+      const row = ws.getRow(6+idx);
+      const bg = idx%2===0 ? SURF : ALT;
+      const esDesact = e.accion === 'desactivacion';
+      const d = new Date(e.ts);
+      const valores = [
+        d.toLocaleDateString('es-AR'),
+        d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+        esDesact ? 'Desactivación' : 'Activación',
+        clean(e.equipo),
+        clean(e.usuario),
+        clean(esDesact ? e.motivo : e.motivoPrevio)
+      ];
+      valores.forEach((v,i) => {
+        const cell = row.getCell(i+1);
+        cell.value = v;
+        // Color específico: columna Acción coloreada rojo/verde según tipo
+        let textColor = WHITE;
+        if (i === 2) textColor = esDesact ? RED : GREEN;
+        cell.font = { name:'Calibri', size:8, bold: i===2, color:{argb: textColor} };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: bg} };
+        cell.border = borderStyle;
+        cell.alignment = { vertical:'middle', wrapText: i===5, horizontal: (i===0||i===1||i===2)?'center':'left' };
+      });
+      row.height = 16;
+    });
+
+    // ─── Fila final: footer ───
+    const lastRow = ws.getRow(6+hist.length);
+    for (let i=1;i<=cols.length;i++) {
+      const fc = lastRow.getCell(i);
+      fc.fill = {type:'pattern', pattern:'solid', fgColor:{argb:NAVY}};
+      fc.border = {top:{style:'thin', color:{argb:BLUE}}};
+    }
+    ws.mergeCells(6+hist.length, 1, 6+hist.length, cols.length);
+    lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
+    lastRow.getCell(1).font = {name:'Calibri', size:7, italic:true, color:{argb:MUTED}};
+    lastRow.getCell(1).alignment = {horizontal:'right', vertical:'middle'};
+    lastRow.height = 16;
+
+    // ─── Descargar ───
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const fileName = `SPCD_Tecnico_HistorialEquipos_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Ofrecer compartir solo si el usuario apretó el botón de compartir
+    if (share && window.SpcdShare) {
+      window.SpcdShare.showShareDialog(blob, fileName, {
+        titulo: 'Historial de Equipos — Activación / Desactivación',
+        periodo: new Date().toLocaleDateString('es-AR'),
+        cantidad: hist.length,
+        modulo: 'tecnico',
+        tipoExport: 'historial-equipos'
+      });
+    }
+  } catch (err) {
+    console.error('Error exportando historial:', err);
+    alert('Error al generar el Excel: ' + err.message);
+  }
+}
+
+/* Análisis corto al clickear un indicador del legend del gráfico por fecha */
+function mostrarAnalisisIndicador(texto, ctx) {
+  const box = document.getElementById('chart-prom-analysis');
+  if (!box) return;
+  const { values, dateObjs, avgTotal, trendData, trendSlope, trendDeltaPct, dowFull } = ctx;
+  const n = values.length;
+
+  let titulo = '', color = '#CBD5E1', body = '';
+
+  if (texto.startsWith('Lun-Vie')) {
+    color = '#86EFAC';
+    const idx = dateObjs.map((d,i) => ({d,i})).filter(x => x.d.getDay() !== 0 && x.d.getDay() !== 6).map(x => x.i);
+    const vals = idx.map(i => values[i]);
+    const total = vals.reduce((a,b)=>a+b,0);
+    const avg = vals.length ? (total/vals.length) : 0;
+    const maxV = vals.length ? Math.max(...vals) : 0;
+    const maxIdx = idx[vals.indexOf(maxV)];
+    const dMax = maxIdx != null ? dateObjs[maxIdx] : null;
+    titulo = '📊 Lun-Vie — Análisis de días hábiles';
+    body = `${vals.length} días · <b>${total.toLocaleString('es-AR')} estudios</b> acumulados · promedio <b>${avg.toFixed(1)}</b>/día. `
+         + (dMax ? `Pico en <b>${dowFull[dMax.getDay()]} ${dMax.toLocaleDateString('es-AR')}</b> con <b>${maxV}</b> estudios.` : '');
+  } else if (texto.startsWith('Sáb-Dom')) {
+    color = '#FCD34D';
+    const idx = dateObjs.map((d,i) => ({d,i})).filter(x => x.d.getDay() === 0 || x.d.getDay() === 6).map(x => x.i);
+    const vals = idx.map(i => values[i]);
+    const total = vals.reduce((a,b)=>a+b,0);
+    const avg = vals.length ? (total/vals.length) : 0;
+    const totalGlobal = values.reduce((a,b)=>a+b,0);
+    const pct = totalGlobal ? (total/totalGlobal*100).toFixed(1) : 0;
+    titulo = '📊 Sáb-Dom — Análisis de fines de semana';
+    body = `${vals.length} días · <b>${total.toLocaleString('es-AR')} estudios</b> (${pct}% del total) · promedio <b>${avg.toFixed(1)}</b>/día. `
+         + (avg < avgTotal * 0.5 ? 'La actividad de fin de semana está muy por debajo del promedio general.' : avg > avgTotal * 0.8 ? 'Fin de semana con alta actividad.' : 'Actividad moderada en fin de semana.');
+  } else if (texto.startsWith('Promedio')) {
+    color = '#93C5FD';
+    const above = values.filter(v => v > avgTotal).length;
+    const below = values.filter(v => v < avgTotal).length;
+    const eq = n - above - below;
+    const maxV = Math.max(...values);
+    const minV = Math.min(...values);
+    const maxIdx = values.indexOf(maxV);
+    const minIdx = values.indexOf(minV);
+    titulo = '📊 Promedio — Distribución diaria';
+    body = `Promedio: <b>${avgTotal.toFixed(1)}</b> estudios/día sobre ${n} días. `
+         + `<b>${above}</b> días por encima, <b>${below}</b> por debajo${eq?`, ${eq} en el promedio`:''}. `
+         + `Máx: <b>${maxV}</b> (${dateObjs[maxIdx].toLocaleDateString('es-AR')}). Mín: <b>${minV}</b> (${dateObjs[minIdx].toLocaleDateString('es-AR')}).`;
+  } else if (texto.startsWith('Tendencia')) {
+    color = trendSlope > 0.1 ? '#A78BFA' : trendSlope < -0.1 ? '#F472B6' : '#94A3B8';
+    const primerVal = trendData[0]?.toFixed(1);
+    const ultimoVal = trendData[n-1]?.toFixed(1);
+    const dir = trendSlope > 0.1 ? 'creciente ▲' : trendSlope < -0.1 ? 'decreciente ▼' : 'estable ·';
+    const deltaAbs = Math.abs(trendDeltaPct).toFixed(0);
+    let interpretacion = '';
+    if (trendSlope > 0.1) {
+      interpretacion = deltaAbs >= 30 ? 'Aumento significativo a lo largo del período.' : 'Aumento moderado en la actividad.';
+    } else if (trendSlope < -0.1) {
+      interpretacion = deltaAbs >= 30 ? 'Caída significativa — conviene investigar causas.' : 'Leve disminución en la actividad.';
+    } else {
+      interpretacion = 'Actividad estable sin cambios relevantes.';
+    }
+    titulo = '📊 Tendencia — Proyección del período';
+    body = `Dirección: <b>${dir}</b>. Del día 1 (esperaba <b>${primerVal}</b>) al último día (esperaba <b>${ultimoVal}</b>), variación de <b>${trendDeltaPct >= 0 ? '+' : ''}${trendDeltaPct.toFixed(0)}%</b>. ${interpretacion}`;
+  }
+
+  box.innerHTML = `<div style="background:rgba(15,23,42,.6); border-left:3px solid ${color}; border-radius:6px; padding:10px 14px; margin-top:8px;">
+    <div style="font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; color:${color}; margin-bottom:4px;">${titulo}</div>
+    <div style="color:#CBD5E1; font-size:11.5px; line-height:1.55;">${body}</div>
+  </div>`;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    // Si alguno de los modales pequeños está abierto, cerrarlo PRIMERO (están encima)
+    const motivoOpen = document.getElementById('motivo-modal-overlay').classList.contains('open');
+    if (motivoOpen) { closeMotivoModal(); return; }
+    const reactOpen = document.getElementById('reactivar-modal-overlay').classList.contains('open');
+    if (reactOpen) { closeReactivarModal(); return; }
+    const histOpen = document.getElementById('equipos-historial-overlay').classList.contains('open');
+    if (histOpen) { closeEquiposHistorialModal(); return; }
+    closeModal();
+    closeTiempoAdminModal();
+    closePromedioEstudiosModal();
+    closeEquiposActivosModal();
+  }
+});
+
+function filterModal(query) {
+  const q = query.toLowerCase().trim();
+  if(!q) { modalFiltered = [...modalRows]; }
+  else {
+    modalFiltered = modalRows.filter(r =>
+      (r['Paciente']||'').toLowerCase().includes(q) ||
+      String(r['Documento']||'').toLowerCase().includes(q) ||
+      (r['Prestación']||'').toLowerCase().includes(q) ||
+      (r['Equipo']||'').toLowerCase().includes(q)
+    );
+  }
+  renderModalTable(modalFiltered);
+}
+
+function renderModalTable(rows) {
+  const MAX = 500;
+  const display = rows.slice(0, MAX);
+  document.getElementById('modal-count').textContent = rows.length.toLocaleString() + ' registros' + (rows.length > MAX ? ' (mostrando '+MAX+')' : '');
+  document.getElementById('modal-footer-count').textContent = rows.length.toLocaleString() + ' registros' + (rows.length !== modalRows.length ? ' filtrados de '+modalRows.length.toLocaleString() : '');
+
+  document.getElementById('modal-tbody').innerHTML = display.map(r => {
+    const fecha = parseDate(r['Turno Fecha']);
+    const fechaStr = fecha ? fecha.toLocaleDateString('es-AR') : '—';
+    const estCls = r['Estado']==='REA' ? 'color:var(--cyan)' : r['Estado']==='SUS' ? 'color:var(--red)' : 'color:var(--muted)';
+    return '<tr>' +
+      '<td>'+fechaStr+'</td>' +
+      '<td style="color:var(--muted)">'+(r['Turno N°']||'—')+'</td>' +
+      '<td style="font-weight:600">'+(r['Paciente']||'—')+'</td>' +
+      '<td style="color:var(--muted)">'+(r['Documento']||'—')+'</td>' +
+      '<td>'+(r['Prestación']||'—')+'</td>' +
+      '<td style="color:var(--amber)">'+(r['Equipo']||'—')+'</td>' +
+      '<td style="'+estCls+';font-weight:600">'+(r['Estado']||'—')+'</td>' +
+      '<td style="color:var(--blue)">'+(r['Duración']||'—')+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ── Logo canvas ── */
+function generateLogoPNG() {
+  const c = document.createElement('canvas');
+  c.width = 480; c.height = 100;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#0F172A'; ctx.fillRect(0,0,c.width,c.height);
+  const cx = 50, cy = 50, r = 34;
+  const glow = ctx.createRadialGradient(cx,cy,r-2,cx,cy,r+12);
+  glow.addColorStop(0,'rgba(59,130,246,.25)'); glow.addColorStop(1,'rgba(59,130,246,0)');
+  ctx.fillStyle = glow; ctx.fillRect(cx-r-14,cy-r-14,(r+14)*2,(r+14)*2);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle = '#3B82F6'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r-5,0,Math.PI*2);
+  ctx.strokeStyle = 'rgba(59,130,246,.3)'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r-6,0,Math.PI*2);
+  const innerFill = ctx.createLinearGradient(cx-r,cy-r,cx+r,cy+r);
+  innerFill.addColorStop(0,'#1E3A8A'); innerFill.addColorStop(1,'#0F172A');
+  ctx.fillStyle = innerFill; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,r,-1.2,0.3);
+  ctx.strokeStyle = '#22DBAE'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,2.0,3.2);
+  ctx.strokeStyle = '#3B82F6'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.stroke();
+  [[-1.2,'#22DBAE',3],[0.3,'#3B82F6',2.5],[-Math.PI/2,'#22DBAE',2.5],[2.0,'#3B82F6',2],[3.2,'#22DBAE',1.8]].forEach(([a,col,sz]) => {
+    ctx.beginPath(); ctx.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r,sz,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+  });
+  [[-1.2,10,'#22DBAE'],[0.3,8,'#3B82F6'],[-Math.PI/2,8,'#22DBAE']].forEach(([a,len,col]) => {
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); ctx.lineTo(cx+Math.cos(a)*(r+len),cy+Math.sin(a)*(r+len));
+    ctx.strokeStyle=col; ctx.lineWidth=0.8; ctx.globalAlpha=0.6; ctx.stroke(); ctx.globalAlpha=1;
+  });
+  [[cx+r+12,cy-8,1,'#22DBAE',0.5],[cx+r+6,cy+14,0.8,'#3B82F6',0.4],[cx-r-8,cy-12,0.8,'#3B82F6',0.4]].forEach(([x,y,sz,col,a]) => {
+    ctx.beginPath(); ctx.arc(x,y,sz,0,Math.PI*2); ctx.fillStyle=col; ctx.globalAlpha=a; ctx.fill(); ctx.globalAlpha=1;
+  });
+  const spGrad = ctx.createLinearGradient(cx-14,cy-12,cx+14,cy+12);
+  spGrad.addColorStop(0,'#B8D4F0'); spGrad.addColorStop(1,'#3B82F6');
+  ctx.font = 'bold 32px Rajdhani, Calibri, Arial'; ctx.fillStyle = spGrad;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SP',cx,cy+1);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = 'bold 28px Rajdhani, Calibri, Arial';
+  ctx.fillStyle = '#B8D4F0'; ctx.fillText('CONTROL',100,40);
+  ctx.fillStyle = '#3B82F6'; ctx.fillText('DATA',100,68);
+  ctx.beginPath(); ctx.moveTo(100,48); ctx.lineTo(260,48);
+  ctx.strokeStyle = 'rgba(59,130,246,.2)'; ctx.lineWidth = 0.5; ctx.stroke();
+  return c.toDataURL('image/png').split(',')[1];
+}
+
+function deduplicarPorTurno(rows) {
+  const seen = new Set();
+  return rows.filter(r => {
+    const t = r['Turno N°'];
+    if (!t || t==='') return true;
+    if (seen.has(t)) return false;
+    seen.add(t); return true;
+  });
+}
+
+async function exportExcel(share) {
+  if (!modalFiltered.length) return;
+
+  const cols = ['Turno Fecha','Turno N°','Paciente','Documento','Prestación','Equipo','Estado','Duración'];
+  const shortH = ['Fecha','T.N°','Paciente','DNI','Prestación','Equipo','Est','Duración'];
+  const colW = [10,6,22,12,28,16,6,10];
+  const sede = localStorage.getItem('spcd_sede') || 'General';
+  const fecha = new Date().toLocaleDateString('es-AR');
+  const dataRows = deduplicarPorTurno(modalFiltered);
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'SP Control Data';
+  const ws = wb.addWorksheet('Detalle');
+
+  const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0', RED='F87171', SURF='111827', CYAN='22DBAE';
+
+  // Logo
+  const logoB64 = generateLogoPNG();
+  const logoId = wb.addImage({base64:logoB64,extension:'png'});
+  ws.addImage(logoId,{tl:{col:0,row:0},ext:{width:220,height:46}});
+
+  // Fila 1: Logo + Título
+  ws.mergeCells(1,3,1,cols.length);
+  const t1 = ws.getCell(1,3);
+  t1.value = 'INFORME TÉCNICO';
+  t1.font = {name:'Calibri',size:14,bold:true,color:{argb:WHITE}};
+  t1.alignment = {horizontal:'center',vertical:'middle'};
+  for(let i=1;i<=cols.length;i++) ws.getCell(1,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+  ws.getRow(1).height = 38;
+
+  // Fila 2: Línea decorativa
+  for(let i=1;i<=cols.length;i++) {
+    const dc = ws.getCell(2,i);
+    dc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+    dc.border = {bottom:{style:'medium',color:{argb:BLUE}}};
+  }
+  ws.getRow(2).height = 4;
+
+  // Fila 3: Info
+  ws.mergeCells(3,1,3,cols.length);
+  const t2 = ws.getCell('A3');
+  t2.value = `  Sede: ${sede}   |   ${fecha}   |   ${dataRows.length} registros   |   ${modalTitle.toUpperCase()}`;
+  t2.font = {name:'Calibri',size:9,bold:true,color:{argb:RED}};
+  t2.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
+  t2.alignment = {horizontal:'center',vertical:'middle'};
+  ws.getRow(3).height = 20;
+
+  // Fila 4: Espacio
+  for(let i=1;i<=cols.length;i++) ws.getCell(4,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+  ws.getRow(4).height = 4;
+
+  // Fila 5: Headers
+  const hr = ws.getRow(5);
+  shortH.forEach((h,i) => {
+    const cell = hr.getCell(i+1);
+    cell.value = h;
+    cell.font = {name:'Calibri',size:8,bold:true,color:{argb:WHITE}};
+    cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
+    cell.alignment = {horizontal:'center',vertical:'middle'};
+    cell.border = {bottom:{style:'thin',color:{argb:CYAN}},top:{style:'thin',color:{argb:BLUE}}};
+  });
+  hr.height = 18;
+  colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
+
+  // Datos
+  const thinB = {style:'hair',color:{argb:'334155'}};
+  const borderStyle = {bottom:thinB,left:{style:'hair',color:{argb:'1E293B'}},right:{style:'hair',color:{argb:'1E293B'}}};
+  dataRows.forEach((r,idx) => {
+    const row = ws.getRow(6+idx);
+    const bg = idx%2===0 ? SURF : '1A2332';
+    cols.forEach((c,i) => {
+      const cell = row.getCell(i+1);
+      cell.value = r[c] ?? '';
+      cell.font = {name:'Calibri',size:8,color:{argb:c==='Estado'&&r[c]==='SUS'?RED:WHITE}};
+      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+      cell.border = borderStyle;
+      cell.alignment = {vertical:'middle',shrinkToFit:true};
+    });
+    row.height = 14;
+  });
+
+  // Fila final: cierre
+  const lastRow = ws.getRow(6+dataRows.length);
+  for(let i=1;i<=cols.length;i++) {
+    const fc = lastRow.getCell(i);
+    fc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
+    fc.border = {top:{style:'thin',color:{argb:BLUE}}};
+  }
+  ws.mergeCells(6+dataRows.length,1,6+dataRows.length,cols.length);
+  lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
+  lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
+  lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
+  lastRow.height = 16;
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url;
+  const fileName = 'SPCD_Tecnico_'+modalTitle.replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  a.download = fileName;
+  a.click(); URL.revokeObjectURL(url);
+
+  if (share && window.SpcdShare) {
+    window.SpcdShare.showShareDialog(blob, fileName, {
+      titulo: modalTitle,
+      periodo: new Date().toLocaleDateString('es-AR'),
+      cantidad: (modalRows && modalRows.length) || 0,
+      modulo: 'tecnico',
+      tipoExport: modalTipo || 'detalle'
+    });
+  }
+}
+
+/* ════════════════════════════════════════
+   UTILIDADES
+════════════════════════════════════════ */
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val) ? null : val;
+  const d = new Date(val);
+  return isNaN(d) ? null : d;
+}
+
+function toDateStr(d) {
+  if (!d) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function groupBy(arr, keyFn) {
+  return arr.reduce((acc, item) => {
+    const k = keyFn(item) || 'Sin datos';
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(item);
+    return acc;
+  }, {});
+}
+</script>
+<script src="spcd-bg.js?v=2"></script>
+<script src="spcd-share.js?v=4"></script>
+<script src="chatbot.js?v=ai-2026-04-20-g"></script>
+</body>
+</html>
