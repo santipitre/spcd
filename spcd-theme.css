@@ -1,0 +1,55 @@
+/* ============================================================
+   SPCD — TEMA COMPARTIDO (Fase 1 del refactor)
+   ------------------------------------------------------------
+   Variables de color, tipografía y animaciones usadas en los 5
+   módulos del proyecto (index, admin, tecnico, medico, operativo).
+
+   Cómo usarlo: cada HTML importa este archivo con:
+       <link rel="stylesheet" href="spcd-theme.css">
+
+   Editar este archivo actualiza el tema en los 5 módulos a la vez.
+   Las variables con variaciones por módulo (--red, --amber,
+   --border, --glass) siguen definiéndose en cada HTML para
+   respetar su identidad visual particular.
+   ============================================================ */
+
+/* ── Tipografía (reemplaza la importación duplicada) ──────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap');
+
+/* ── Variables base compartidas ────────────────────────────── */
+:root {
+  --navy:     #0F172A;
+  --blue-d:   #1E3A8A;
+  --blue:     #3B82F6;
+  --cyan:     #22DBAE;
+  --green:    #55e78B;
+  --text:     #E2E8F0;
+  --muted:    #94A3B8;
+  --surface:  #111827;
+}
+
+/* ── Animaciones base ──────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Reset mínimo (idéntico al de cada HTML) ──────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Body base ─────────────────────────────────────────────── */
+html, body {
+  min-height: 100%;
+  background: var(--navy);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+}

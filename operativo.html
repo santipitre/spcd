@@ -11,35 +11,23 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-180.png"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="spcd-theme.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* Variables especificas del modulo operativo (las comunes vienen de spcd-theme.css) */
     :root {
-      --navy:    #0F172A;
-      --blue-d:  #1E3A8A;
-      --blue:    #3B82F6;
-      --cyan:    #22DBAE;
       --sky:     #38BDF8;
-      --green:   #55e78B;
       --amber:   #F59E0B;
       --red:     #EF4444;
       --orange:  #F97316;
       --slate:   #64748B;
       --glass:   rgba(30, 58, 138, 0.25);
       --border:  rgba(34, 219, 174, 0.2);
-      --text:    #E2E8F0;
-      --muted:   #94A3B8;
-      --surface: #111827;
     }
 
     html, body {
       min-height: 100vh;
-      background: var(--navy);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
       font-size: 14px; line-height: 1.5;
     }
 

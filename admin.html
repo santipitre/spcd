@@ -7,15 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="theme-color" content="#0F172A"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="spcd-theme.css"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Variables especificas del modulo admin (las comunes vienen de spcd-theme.css) */
     :root {
-      --navy:    #0F172A;
-      --blue-d:  #1E3A8A;
-      --blue:    #3B82F6;
-      --cyan:    #22DBAE;
-      --green:   #55e78B;
       --red:     #F87171;
       --amber:   #FBBF24;
       --purple:  #A78BFA;
@@ -23,13 +18,8 @@
       --glass:   rgba(30,58,138,.22);
       --border:  rgba(59,130,246,.2);
       --border-a:rgba(59,130,246,.3);
-      --text:    #E2E8F0;
-      --muted:   #94A3B8;
-      --surface: #111827;
     }
     html, body {
-      min-height: 100%; background: var(--navy);
-      color: var(--text); font-family: 'Inter', sans-serif;
       font-size: 14px; line-height: 1.5;
     }
 
