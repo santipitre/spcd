@@ -1149,6 +1149,8 @@
 <script src="spcd-utils.js"></script>
 <script src="spcd-dialog.js"></script>
 <script src="spcd-supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spcd-realtime.js"></script>
 <script>
 /* ===========================================================
    SP CONTROL DATA — MÓDULO OPERATIVO
@@ -1283,6 +1285,47 @@ async function enterApp() {
 
   // Si viene desde link ?modo=pedidos, auto-abrir el tab Pedidos
   aplicarModoAccesoPostLogin();
+
+  // Notificaciones en tiempo real para admin
+  if (currentUser.rol === 'admin') {
+    initRealtimeAdminPedidos();
+  }
+}
+
+// Suscribe al admin a eventos INSERT de la tabla pedidos.
+// Cuando un solicitante crea un pedido, dispara notificaci\u00f3n del sistema
+// y refresca la bandeja de aprobaci\u00f3n.
+async function initRealtimeAdminPedidos() {
+  if (typeof subscribeToTable !== 'function') return;
+  const permOk = await requestNotifPermissionConOnboarding('pedido de insumos');
+  if (!permOk) { showToast('Notificaciones desactivadas. Pod\u00e9s activarlas en la config del navegador.', 'warning'); return; }
+
+  subscribeToTable({
+    channel: 'pedidos-rt-' + currentUser.id,
+    table: 'pedidos',
+    event: 'INSERT',
+    onEvent: async (payload) => {
+      const nuevo = payload.new || {};
+      const urg = (nuevo.urgencia || 'NORMAL').toUpperCase();
+      const servicio = nuevo.servicio || 'Sin servicio';
+      // Tratar de resolver el solicitante via DB (el payload no trae el nombre)
+      let quien = 'Solicitante';
+      try {
+        const [ped] = await sbQuery('v_pedidos', `select=solicitante_nombre&id=eq.${nuevo.id}`);
+        if (ped && ped.solicitante_nombre) quien = ped.solicitante_nombre;
+      } catch(e) {}
+
+      const urgIcon = urg === 'EMERGENCIA' ? '\u{1F6A8}' : urg === 'URGENTE' ? '\u26A0\uFE0F' : '\u{1F4E6}';
+      showSpcdNotification(
+        urgIcon + ' Nuevo pedido de insumos',
+        `${quien} \u2014 ${servicio} \u00b7 ${urg}`,
+        { url: window.location.pathname, tag: 'pedido-' + nuevo.id, requireInteraction: urg === 'EMERGENCIA' }
+      );
+      await loadPedidos();
+    }
+  });
+
+  showToast('Notificaciones activas. Te avisar\u00e9 cuando llegue un pedido nuevo.', 'success');
 }
 
 function applyPermissions() {
