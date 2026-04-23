@@ -132,3 +132,122 @@ function unsubscribeAll() {
 }
 // Limpiar al cerrar la pesta\u00f1a / recargar
 window.addEventListener('beforeunload', unsubscribeAll);
+
+/* ── Herramientas de diagnóstico ────────────────────────── */
+// Dispara una notificaci\u00f3n de prueba local (sin Realtime) para verificar
+// que la API Notification + permiso del browser funcionan.
+function spcdTestNotif() {
+  if (!('Notification' in window)) {
+    return { ok:false, mensaje:'Este navegador no soporta notificaciones.' };
+  }
+  if (Notification.permission !== 'granted') {
+    return { ok:false, mensaje:'El navegador tiene las notificaciones bloqueadas o sin permiso.' };
+  }
+  try {
+    const n = new Notification('\u{1F514} SPCD \u2014 Prueba', {
+      body: 'Si ves esta notificaci\u00f3n, el sistema funciona.\nAhora pod\u00e9s cerrar esta y esperar a que alguien cree un pedido.',
+      icon: 'icon-192.png',
+      requireInteraction: false
+    });
+    return { ok:true, mensaje:'Notificaci\u00f3n de prueba enviada. \u00bfLa ves en la esquina?' };
+  } catch(e) {
+    return { ok:false, mensaje:'Error al crear la notificaci\u00f3n: ' + e.message };
+  }
+}
+
+// Retorna un objeto con el estado de cada pieza del sistema de notificaciones.
+function spcdDiagnosticoRealtime() {
+  const d = {
+    browser: {
+      soportaNotificaciones: ('Notification' in window),
+      permisoActual: ('Notification' in window) ? Notification.permission : 'no soportado',
+      plataforma: navigator.platform || '?',
+      userAgent: (navigator.userAgent || '').slice(0, 80)
+    },
+    scripts: {
+      supabaseJsCargado: (typeof supabase !== 'undefined' && !!supabase.createClient),
+      spcdSupabaseConstantes: (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_KEY !== 'undefined'),
+      spcdRealtimeFunciones: (typeof subscribeToTable === 'function')
+    },
+    realtime: {
+      clienteInicializado: !!_spcdSbClient,
+      suscripcionesActivas: _spcdSubscriptions.length,
+      canales: _spcdSubscriptions.map(s => (s.topic || '(sin topic)'))
+    },
+    usuario: {
+      rol: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.rol : '(sin login)',
+      username: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : '-'
+    }
+  };
+  console.table(d.browser);
+  console.table(d.scripts);
+  console.table(d.realtime);
+  console.table(d.usuario);
+  return d;
+}
+
+// Mostrar el diagn\u00f3stico en un modal con sugerencias de arreglo.
+async function spcdMostrarDiagnostico() {
+  const d = spcdDiagnosticoRealtime();
+  const problemas = [];
+
+  if (!d.browser.soportaNotificaciones) problemas.push('\u274C El navegador no soporta notificaciones. Us\u00e1 Chrome/Firefox/Edge actualizado.');
+  else if (d.browser.permisoActual === 'denied') problemas.push('\u274C Notificaciones BLOQUEADAS para este sitio. Ve\u00e9 al candado de la barra de direcci\u00f3n \u2192 "Notificaciones" \u2192 "Permitir" \u2192 recarg\u00e1 la p\u00e1gina.');
+  else if (d.browser.permisoActual === 'default') problemas.push('\u26A0 Notificaciones sin permiso concedido a\u00fan. Cerr\u00e1 sesi\u00f3n y volv\u00e9 a entrar \u2014 aparece el modal para aceptar.');
+
+  if (!d.scripts.supabaseJsCargado) problemas.push('\u274C supabase-js no est\u00e1 cargado. \u00bfHay red? Refresc\u00e1 con Ctrl+F5.');
+  if (!d.scripts.spcdSupabaseConstantes) problemas.push('\u274C spcd-supabase.js no disponible.');
+  if (!d.scripts.spcdRealtimeFunciones) problemas.push('\u274C spcd-realtime.js no cargado.');
+
+  if (d.realtime.suscripcionesActivas === 0 && d.usuario.rol === 'admin') {
+    problemas.push('\u26A0 Sos admin pero no hay suscripciones activas. Puede ser que (a) no diste permiso o (b) la tabla no tiene Realtime habilitado en Supabase. Correr:\n  ALTER PUBLICATION supabase_realtime ADD TABLE pedidos;\n  ALTER PUBLICATION supabase_realtime ADD TABLE licencias;');
+  }
+
+  if (d.usuario.rol !== 'admin') {
+    problemas.push('\u2139 Sos rol "' + d.usuario.rol + '". Las notificaciones en tiempo real solo las recibe el admin. Entr\u00e1 como SPITRELLA.');
+  }
+
+  const linea = (label, value) => `\u2022 ${label}: ${value}`;
+  const reporte = [
+    '\u{1F4E1} DIAGN\u00d3STICO DE NOTIFICACIONES',
+    '',
+    'Navegador:',
+    linea('Soporta notificaciones', d.browser.soportaNotificaciones ? 'S\u00ed' : 'NO'),
+    linea('Permiso actual', d.browser.permisoActual),
+    '',
+    'Scripts:',
+    linea('supabase-js', d.scripts.supabaseJsCargado ? 'OK' : 'FALTA'),
+    linea('spcd-supabase', d.scripts.spcdSupabaseConstantes ? 'OK' : 'FALTA'),
+    linea('spcd-realtime', d.scripts.spcdRealtimeFunciones ? 'OK' : 'FALTA'),
+    '',
+    'Realtime:',
+    linea('Cliente', d.realtime.clienteInicializado ? 'Iniciado' : 'NO inicializado'),
+    linea('Suscripciones activas', d.realtime.suscripcionesActivas),
+    '',
+    'Usuario:',
+    linea('Rol', d.usuario.rol),
+    linea('Username', d.usuario.username)
+  ];
+  if (problemas.length > 0) {
+    reporte.push('', '\u26A0 PROBLEMAS DETECTADOS:', '', ...problemas);
+  } else {
+    reporte.push('', '\u2705 Todo en orden. Si a\u00fan no llegan notificaciones, verific\u00e1:');
+    reporte.push('\u2022 Que la tabla tenga Realtime habilitado en Supabase');
+    reporte.push('\u2022 Que el S.O. no tenga "No molestar" o Focus Mode activado');
+    reporte.push('\u2022 Prob\u00e1 el bot\u00f3n "Test" para disparar una notif local');
+  }
+
+  const actions = [{ label: '\u{1F514} Test notif local', value: 'test', primary: true }, { label: 'Cerrar', value: 'close' }];
+  const choice = await _spcdShowDialog({
+    type: problemas.length > 0 ? 'alert' : 'success',
+    title: 'Diagn\u00f3stico de notificaciones',
+    body: reporte.join('\n'),
+    actions
+  });
+
+  if (choice === 'test') {
+    const r = spcdTestNotif();
+    await spcdAlert(r.mensaje, { type: r.ok ? 'success' : 'error', title: r.ok ? 'Prueba enviada' : 'No se pudo' });
+  }
+}
+

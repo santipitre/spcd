@@ -394,6 +394,7 @@
   <div class="topbar-right">
     <div class="sede-chip">Hospital Italiano</div>
     <div class="user-chip" id="user-chip"></div>
+    <button class="btn-top" id="btn-notif-diag" onclick="spcdMostrarDiagnostico()" title="Diagn\u00f3stico de notificaciones" style="display:none;">&#x1F514;</button>
     <a href="index.html" class="btn-top" id="btn-volver">&larr; Inicio</a>
     <button class="btn-top danger" onclick="doLogout()" id="btn-logout" style="display:none">Salir</button>
   </div>
@@ -726,6 +727,12 @@ function applyPermissions() {
   const tabBandeja = document.querySelector('[data-tab="bandeja"]');
   if (tabBandeja) {
     tabBandeja.style.display = (rol === 'admin') ? '' : 'none';
+  }
+
+  // Bot\u00f3n de diagn\u00f3stico de notificaciones (solo admin)
+  const btnNotifDiag = document.getElementById('btn-notif-diag');
+  if (btnNotifDiag) {
+    btnNotifDiag.style.display = (rol === 'admin') ? 'inline-flex' : 'none';
   }
 
   // Admin: el panel de "Mis Solicitudes" se convierte en HISTORIAL con todas

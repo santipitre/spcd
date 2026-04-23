@@ -683,6 +683,7 @@
   <div class="topbar-right">
     <div class="sede-chip">HOSPITAL ITALIANO</div>
     <div class="user-chip" id="user-chip"></div>
+    <button class="btn-top" id="btn-notif-diag" onclick="spcdMostrarDiagnostico()" title="Diagn\u00f3stico de notificaciones" style="display:none;">&#x1F514;</button>
     <button class="btn-top" id="btn-logout" style="display:none" onclick="doLogout()">
       <span>&#x23FB;</span> Salir
     </button>
@@ -1378,6 +1379,12 @@ function applyPermissions() {
   const btnShareLink = document.getElementById('btn-share-pedidos-link');
   if (btnShareLink) {
     btnShareLink.style.display = (rol === 'admin' || rol === 'mixto') ? 'inline-flex' : 'none';
+  }
+
+  // Bot\u00f3n de diagn\u00f3stico de notificaciones (solo admin)
+  const btnNotifDiag = document.getElementById('btn-notif-diag');
+  if (btnNotifDiag) {
+    btnNotifDiag.style.display = (rol === 'admin') ? 'inline-flex' : 'none';
   }
 
   // Panel de estad\u00edsticas de pedidos (admin + mixto)
