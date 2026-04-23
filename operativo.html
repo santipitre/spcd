@@ -1287,7 +1287,7 @@ async function enterApp() {
 
 function applyPermissions() {
   // Override duro: estos usuarios SIEMPRE son solicitantes, sin importar la DB
-  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ', 'JAVILA'];
+  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ', 'JAVILA', 'LBASTIAS'];
   if (currentUser && currentUser.username && SOLICITANTES_FORZADOS.includes(currentUser.username.toUpperCase())) {
     currentUser.rol = 'solicitante';
   }
@@ -2555,7 +2555,9 @@ function renderPedidos(peds, containerId) {
   container.innerHTML = peds.map(p => {
     const estCls = 'estado-' + p.estado.toLowerCase();
     const urgCls = 'urg-' + p.urgencia.toLowerCase();
-    const showRemito = ['APROBADO','ENTREGADO'].includes(p.estado);
+    // Remito visible solo para admin/mixto (los solicitantes NO pueden ver ni descargar remitos)
+    const puedeVerRemito = currentUser && ['admin','mixto'].includes(currentUser.rol);
+    const showRemito = puedeVerRemito && ['APROBADO','ENTREGADO'].includes(p.estado);
     return `<div class="pedido-card" onclick="showPedidoDetail(${p.id})">
       <div class="pedido-header">
         <div>
@@ -2956,6 +2958,11 @@ async function guardarAjustesCantidades(pedidoId) {
 }
 
 async function downloadRemitoById(id) {
+  // Candado: solo admin/mixto pueden descargar remitos
+  if (!currentUser || !['admin','mixto'].includes(currentUser.rol)) {
+    await spcdAlert('No ten\u00e9s permisos para descargar remitos.', { type:'error', title:'Acceso restringido' });
+    return;
+  }
   try {
     showToast('Generando remito...', 'success');
     const [pedRaw] = await sbQuery('v_pedidos', `select=*&id=eq.${id}`);
@@ -3211,6 +3218,11 @@ function generateSpcdLogoPNG() {
 // ============================================================
 async function downloadPedidoExcel() {
   if (!currentPedidoDetail) return;
+  // Candado: solo admin/mixto pueden descargar el Excel del pedido
+  if (!currentUser || !['admin','mixto'].includes(currentUser.rol)) {
+    await spcdAlert('No ten\u00e9s permisos para descargar remitos.', { type:'error', title:'Acceso restringido' });
+    return;
+  }
   const { pedido: ped, items, movsByProd = {} } = currentPedidoDetail;
   const now = new Date();
   const fechaHoy = now.toLocaleDateString('es-AR');
