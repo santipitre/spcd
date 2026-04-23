@@ -1287,7 +1287,7 @@ async function enterApp() {
 
 function applyPermissions() {
   // Override duro: estos usuarios SIEMPRE son solicitantes, sin importar la DB
-  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ'];
+  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ', 'JAVILA'];
   if (currentUser && currentUser.username && SOLICITANTES_FORZADOS.includes(currentUser.username.toUpperCase())) {
     currentUser.rol = 'solicitante';
   }

@@ -644,7 +644,7 @@ let currentUser  = null; // { id, username, nombre, rol, permisos }
 
 /* -- OVERRIDE DURO DE ROL: estos usuarios SOLO pueden solicitar pedidos
      (se fuerza rol='solicitante' sin importar lo que diga Supabase) -- */
-const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ'];
+const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ', 'JAVILA'];
 function enforceRoleOverride(user) {
   if (!user || !user.username) return user;
   if (SOLICITANTES_FORZADOS.includes(user.username.toUpperCase())) {
@@ -873,7 +873,7 @@ async function renderModules() {
 
   // Atajo para solicitantes puros: van directo a "MIS PEDIDOS"
   // sin ver la pantalla de selección de módulo.
-  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ'];
+  const SOLICITANTES_FORZADOS = ['TRUMBO', 'VFORNI', 'ISKAMLEC', 'MWSANCHEZ', 'JAVILA'];
   const esSolicitantePuro =
     currentUser.rol === 'solicitante' ||
     (currentUser.username && SOLICITANTES_FORZADOS.includes(currentUser.username.toUpperCase()));
