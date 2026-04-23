@@ -687,7 +687,8 @@ async function enterApp() {
 async function initRealtimeAdminLicencias() {
   if (typeof subscribeToTable !== 'function') return;
   const permOk = await requestNotifPermissionConOnboarding('pedido de licencia');
-  if (!permOk) { showToast('Notificaciones desactivadas. Pod\u00e9s activarlas en la config del navegador.', 'warning'); return; }
+  // Silencioso si no hay permiso (el user tiene el bot\u00f3n \u{1F514} para activarlas).
+  if (!permOk) return;
 
   subscribeToTable({
     channel: 'licencias-rt-' + currentUser.id,
@@ -713,8 +714,6 @@ async function initRealtimeAdminLicencias() {
       await loadLicencias();
     }
   });
-
-  showToast('Notificaciones activas. Te avisar\u00e9 cuando llegue una solicitud nueva.', 'success');
 }
 
 function applyPermissions() {
