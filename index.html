@@ -813,7 +813,9 @@ const ROLE_DEFAULTS = {
   admin:       { sedes: ['*'], modulos: { admin:'edit', tecnico:'edit', medico:'edit', operativo:'admin', personal:'admin' } },
   consultor:   { sedes: ['*'], modulos: { admin:'view', tecnico:'view', medico:'view', operativo:'view', personal:'view' } },
   mixto:       { sedes: ['Sede Hospital Italiano'], modulos: { medico:'edit', operativo:'admin', personal:'user' } },
-  solicitante: { sedes: ['Sede Hospital Italiano'], modulos: { operativo:'pedidos', personal:'user' } }
+  solicitante: { sedes: ['Sede Hospital Italiano'], modulos: { operativo:'pedidos', personal:'user' } },
+  // Rol con acceso EXCLUSIVO al módulo Personal (solicitudes de licencia)
+  licencias:   { sedes: ['Sede Hospital Italiano'], modulos: { personal:'user' } }
 };
 
 function getPermisos() {
