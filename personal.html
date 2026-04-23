@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>Módulo Personal &middot; SP Control Data</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="SP·CD"/>
+  <meta name="theme-color" content="#0F172A"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-180.png"/>
+
+  <link rel="stylesheet" href="spcd-theme.css"/>
+  <link rel="stylesheet" href="spcd-components.css"/>
+  <link rel="stylesheet" href="spcd-dialog.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+  <style>
+    /* Variables específicas del módulo personal */
+    :root {
+      --sky:     #A78BFA; /* usamos purple como acento del módulo personal */
+      --amber:   #F59E0B;
+      --red:     #EF4444;
+      --slate:   #64748B;
+      --glass:   rgba(30, 58, 138, 0.25);
+      --border:  rgba(167, 139, 250, 0.2);
+      --accent:        var(--sky);
+      --accent-bg:     rgba(167, 139, 250, 0.1);
+      --accent-border: rgba(167, 139, 250, 0.3);
+    }
+
+    html, body { min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* === TOPBAR === */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(15,23,42,.82);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .logo-mini {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--blue-d), var(--navy));
+      border: 1px solid var(--sky);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Rajdhani', sans-serif; font-weight: 700;
+      font-size: 15px; color: var(--sky);
+      box-shadow: 0 0 12px rgba(167,139,250,.25);
+    }
+    .logo-link { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; cursor: pointer; }
+    .brand-name { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; color: var(--text); }
+    .brand-sub { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: -2px; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .user-chip {
+      background: rgba(85,231,139,.08); border: 1px solid rgba(85,231,139,.3);
+      border-radius: 4px; padding: 5px 12px;
+      font-size: 10px; letter-spacing: 2px; color: var(--green); text-transform: uppercase;
+      display: none;
+    }
+
+    /* === SCREENS === */
+    .screen { display: none; position: relative; z-index: 10; }
+    .screen.active { display: block; }
+
+    /* === LOGIN === */
+    #login-screen {
+      min-height: calc(100vh - 56px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #login-screen.active { display: flex; }
+    .login-box {
+      width: 100%; max-width: 380px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px 28px;
+      animation: fadeUp .3s ease;
+    }
+    .login-logo {
+      text-align: center; margin-bottom: 24px;
+    }
+    .ll-icon {
+      width: 60px; height: 60px; margin: 0 auto 12px;
+      background: linear-gradient(135deg, var(--blue-d), var(--navy));
+      border: 1px solid var(--sky); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Rajdhani', sans-serif; font-weight: 700;
+      font-size: 24px; color: var(--sky);
+      box-shadow: 0 0 20px rgba(167,139,250,.25);
+    }
+    .login-logo h2 {
+      font-family: 'Rajdhani', sans-serif; font-size: 22px;
+      font-weight: 700; letter-spacing: 3px; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .login-logo p {
+      font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+    }
+    .btn-login {
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+    }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .login-error {
+      margin-top: 12px; padding: 10px 14px; border-radius: 6px;
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+      color: var(--red); font-size: 12px; text-align: center;
+      display: none;
+    }
+
+    /* === MAIN APP === */
+    #app-screen { max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
+
+    /* NAV TABS */
+    .nav-tabs {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      background: rgba(15,23,42,.5); border-radius: 10px; padding: 4px;
+      overflow-x: auto;
+      animation: fadeUp .4s ease;
+    }
+    .nav-tab {
+      padding: 10px 18px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer;
+      color: var(--muted); background: transparent;
+      border: none; transition: all .2s; white-space: nowrap;
+      font-family: 'Inter', sans-serif; position: relative;
+    }
+    .nav-tab:hover { color: var(--text); background: rgba(167,139,250,.08); }
+    .nav-tab.active { color: var(--sky); background: rgba(167,139,250,.15); }
+    .nav-tab.hidden { display: none; }
+    .tab-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      border-radius: 9px; font-size: 10px; font-weight: 700;
+      background: var(--red); color: #fff;
+      margin-left: 6px; line-height: 1;
+    }
+
+    .tab-panel { display: none; animation: fadeUp .3s ease; }
+    .tab-panel.active { display: block; }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .section-header h2 {
+      font-family: 'Rajdhani', sans-serif; font-size: 22px;
+      font-weight: 700; letter-spacing: 3px; color: var(--sky);
+    }
+
+    .btn-submit {
+      padding: 10px 20px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer;
+      border: 1px solid rgba(167,139,250,.5);
+      transition: all .2s;
+    }
+    .btn-submit:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 10px 20px; border-radius: 8px;
+      background: transparent; color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer;
+      border: 1px solid var(--border);
+      transition: all .2s;
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--sky); }
+
+    .spinner {
+      width: 30px; height: 30px; margin: 40px auto;
+      border: 3px solid rgba(167,139,250,.15);
+      border-top-color: var(--sky);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .es-icon { font-size: 56px; margin-bottom: 16px; opacity: .4; }
+    .empty-state h3 {
+      font-family: 'Rajdhani', sans-serif; font-size: 18px;
+      letter-spacing: 2px; color: var(--text); margin-bottom: 4px;
+    }
+
+    /* === LICENCIA CARD === */
+    .licencia-card {
+      background: rgba(15,23,42,.45);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .licencia-card:hover { border-color: var(--sky); transform: translateY(-1px); }
+    .lic-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .lic-id {
+      font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 14px;
+      color: var(--sky); letter-spacing: 2px;
+    }
+    .lic-tipo {
+      font-size: 10px; letter-spacing: 1.5px;
+      padding: 3px 10px; border-radius: 4px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .lic-tipo.dia-libre     { background: rgba(167,139,250,.15); color: var(--sky); border: 1px solid rgba(167,139,250,.3); }
+    .lic-tipo.cambio-turno  { background: rgba(34,219,174,.15);  color: var(--cyan); border: 1px solid rgba(34,219,174,.3); }
+    .lic-tipo.tarde         { background: rgba(245,158,11,.15);  color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
+    .lic-tipo.temprano      { background: rgba(56,189,248,.15);  color: #38BDF8; border: 1px solid rgba(56,189,248,.3); }
+
+    .lic-estado {
+      font-size: 10px; letter-spacing: 1.5px;
+      padding: 3px 10px; border-radius: 4px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .lic-estado.pendiente { background: rgba(245,158,11,.12); color: var(--amber); }
+    .lic-estado.aprobado  { background: rgba(85,231,139,.12); color: var(--green); }
+    .lic-estado.rechazado { background: rgba(239,68,68,.12);  color: var(--red); }
+    .lic-estado.cancelado { background: rgba(148,163,184,.12); color: var(--muted); }
+
+    .lic-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .lic-meta strong { color: var(--text); }
+
+    .form-actions {
+      display: flex; gap: 10px; margin-top: 16px;
+      justify-content: flex-end; flex-wrap: wrap;
+    }
+
+    /* === DETAIL OVERLAY === */
+    .detail-overlay {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(15,23,42,.85); backdrop-filter: blur(6px);
+      display: none; align-items: flex-start; justify-content: center;
+      padding: 40px 20px; overflow-y: auto;
+    }
+    .detail-overlay.active { display: flex; }
+    .detail-box {
+      width: 100%; max-width: 680px;
+      background: linear-gradient(180deg, rgba(30,58,138,.15), var(--surface));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      animation: fadeUp .3s ease;
+    }
+    .detail-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+    }
+    .detail-header h2 {
+      font-family: 'Rajdhani', sans-serif; font-size: 22px;
+      letter-spacing: 3px; color: var(--sky);
+    }
+    .detail-close {
+      background: transparent; border: none; color: var(--muted);
+      font-size: 24px; cursor: pointer; line-height: 1;
+    }
+    .detail-close:hover { color: var(--red); }
+
+    .lic-info-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px; font-size: 13px;
+      background: rgba(15,23,42,.4);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* === CALENDARIO === */
+    .cal-wrap { background: rgba(15,23,42,.4); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .cal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+    }
+    .cal-title {
+      font-family: 'Rajdhani', sans-serif; font-size: 18px;
+      letter-spacing: 2px; color: var(--sky);
+    }
+    .cal-nav-btn {
+      padding: 6px 14px; border-radius: 6px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px; cursor: pointer;
+      transition: all .2s;
+    }
+    .cal-nav-btn:hover { border-color: var(--sky); color: var(--sky); }
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-dow {
+      text-align: center; font-size: 10px; letter-spacing: 1.5px;
+      color: var(--muted); text-transform: uppercase;
+      padding: 6px 0;
+    }
+    .cal-day {
+      min-height: 70px; padding: 6px;
+      background: rgba(15,23,42,.5);
+      border: 1px solid rgba(148,163,184,.1);
+      border-radius: 6px;
+      font-size: 11px;
+      position: relative;
+    }
+    .cal-day.other-month { opacity: .35; }
+    .cal-day.today { border-color: var(--sky); box-shadow: inset 0 0 0 1px var(--sky); }
+    .cal-day-num { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: var(--text); font-size: 13px; }
+    .cal-day .lic-chip {
+      display: block; margin-top: 3px;
+      font-size: 10px;
+      padding: 2px 5px; border-radius: 3px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      cursor: pointer;
+    }
+    .cal-day .lic-chip.dia-libre    { background: rgba(167,139,250,.2); color: var(--sky); }
+    .cal-day .lic-chip.cambio-turno { background: rgba(34,219,174,.2);  color: var(--cyan); }
+    .cal-day .lic-chip.tarde        { background: rgba(245,158,11,.2);  color: var(--amber); }
+    .cal-day .lic-chip.temprano     { background: rgba(56,189,248,.2);  color: #38BDF8; }
+
+    @media (max-width: 700px) {
+      .cal-day { min-height: 55px; font-size: 10px; }
+      .cal-day-num { font-size: 11px; }
+    }
+
+    /* === MODAL PEDIDO DE LICENCIA === */
+    .form-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .form-row.single { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    /* Form fields con estilos locales de este módulo */
+    .form-group label {
+      color: var(--muted);
+    }
+    select.tipo-selector option { background: var(--navy); color: var(--text); }
+
+    /* Asterisco de campo obligatorio */
+    .req { color: var(--red); font-weight: 700; margin-left: 2px; }
+
+    /* Dropzone de archivo */
+    #file-zone:hover { border-color: var(--sky); background: rgba(167,139,250,.08); }
+    #file-zone.has-file { border-style: solid; border-color: var(--green); background: rgba(85,231,139,.06); }
+    #file-zone-preview img {
+      max-width: 100%; max-height: 180px;
+      border-radius: 6px; margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+    .file-pdf-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.35);
+      border-radius: 6px; padding: 8px 12px; color: var(--red);
+      font-size: 12px; margin-bottom: 8px;
+    }
+    .file-remove-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 4px 12px; border-radius: 6px;
+      font-size: 11px; cursor: pointer; margin-top: 6px;
+    }
+    .file-remove-btn:hover { color: var(--red); border-color: var(--red); }
+  </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- ==================== TOPBAR ==================== -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="logo-link">
+      <div class="logo-mini">SP</div>
+      <div>
+        <div class="brand-name">SP&middot;CD</div>
+        <div class="brand-sub">M&Oacute;DULO PERSONAL</div>
+      </div>
+    </a>
+  </div>
+  <div class="topbar-right">
+    <div class="sede-chip">Hospital Italiano</div>
+    <div class="user-chip" id="user-chip"></div>
+    <a href="index.html" class="btn-top" id="btn-volver">&larr; Inicio</a>
+    <button class="btn-top danger" onclick="doLogout()" id="btn-logout" style="display:none">Salir</button>
+  </div>
+</header>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="ll-icon">SP</div>
+      <h2 id="login-title">M&Oacute;DULO PERSONAL</h2>
+      <p id="login-subtitle">Solicitudes de licencia &middot; Cambios de turno</p>
+    </div>
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="login-user" placeholder="Ej: JAVILA" autocomplete="off" autocapitalize="characters" required/>
+      </div>
+      <div class="form-group">
+        <label>PIN</label>
+        <input type="password" id="login-pin" placeholder="4-6 d&iacute;gitos" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="off" required/>
+      </div>
+      <button type="submit" class="btn-login" id="btn-login-submit">Ingresar</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div id="app-screen" class="screen">
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="misSolic" onclick="switchTab('misSolic')">Mis Solicitudes</button>
+    <button class="nav-tab" data-tab="bandeja" onclick="switchTab('bandeja')">Bandeja</button>
+    <button class="nav-tab" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
+  </nav>
+
+  <!-- === TAB: MIS SOLICITUDES === -->
+  <div class="tab-panel active" id="panel-misSolic">
+    <div class="section-header">
+      <h2>MIS SOLICITUDES</h2>
+      <button class="btn-submit" onclick="showNewLicencia()">&#x2B; Nueva solicitud</button>
+    </div>
+    <div id="misSolic-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- === TAB: BANDEJA === -->
+  <div class="tab-panel" id="panel-bandeja">
+    <div class="section-header">
+      <h2>BANDEJA DE APROBACI&Oacute;N</h2>
+      <button class="btn-secondary" onclick="exportLicenciasMes()" id="btn-export-licencias" style="border-color:rgba(34,219,174,.4); color:var(--cyan);">&#x2B07; Exportar Excel del mes</button>
+    </div>
+    <div id="bandeja-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- === TAB: CALENDARIO === -->
+  <div class="tab-panel" id="panel-calendario">
+    <div class="cal-wrap">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calPrevMes()">&larr; Anterior</button>
+        <div class="cal-title" id="cal-title">-</div>
+        <button class="cal-nav-btn" onclick="calNextMes()">Siguiente &rarr;</button>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-dow">Lun</div><div class="cal-dow">Mar</div><div class="cal-dow">Mi&eacute;</div>
+        <div class="cal-dow">Jue</div><div class="cal-dow">Vie</div><div class="cal-dow">S&aacute;b</div>
+        <div class="cal-dow">Dom</div>
+      </div>
+      <div class="cal-grid" id="cal-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL: Nueva Licencia ==================== -->
+<div class="modal-overlay" id="modal-licencia">
+  <div class="modal-box" style="max-width:560px">
+    <h3 style="color:var(--sky)">&#x1F4C5; Nueva solicitud</h3>
+    <p>Complet&aacute; los datos de tu licencia o cambio de horario.</p>
+
+    <div class="form-group">
+      <label>Tipo de solicitud <span class="req">*</span></label>
+      <select id="lic-tipo" class="tipo-selector" onchange="onTipoChange()">
+        <option value="DIA_LIBRE">D&iacute;a(s) libre(s)</option>
+        <option value="CAMBIO_TURNO">Cambio de turno con compa&ntilde;ero</option>
+        <option value="TARDE">Llegar tarde</option>
+        <option value="TEMPRANO">Salir temprano</option>
+      </select>
+    </div>
+
+    <div class="form-row" id="grp-fechas">
+      <div class="form-group">
+        <label id="lbl-desde">Fecha desde <span class="req">*</span></label>
+        <input type="date" id="lic-fecha-desde" required onchange="onFechasChange()"/>
+      </div>
+      <div class="form-group">
+        <label id="lbl-hasta">Fecha hasta <span class="req">*</span></label>
+        <input type="date" id="lic-fecha-hasta" required onchange="onFechasChange()"/>
+      </div>
+    </div>
+    <div id="lic-dias-info" style="display:none; margin-top:-8px; margin-bottom:14px;"></div>
+
+    <div class="form-row" id="grp-horas" style="display:none">
+      <div class="form-group">
+        <label>Hora desde <span class="req">*</span></label>
+        <input type="time" id="lic-hora-desde"/>
+      </div>
+      <div class="form-group">
+        <label>Hora hasta</label>
+        <input type="time" id="lic-hora-hasta"/>
+      </div>
+    </div>
+
+    <div class="form-group" id="grp-companero" style="display:none">
+      <label>Compa&ntilde;ero con el que cambi&aacute;s <span class="req">*</span></label>
+      <select id="lic-companero">
+        <option value="">-- Seleccionar --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Motivo <span class="req">*</span></label>
+      <input type="text" id="lic-motivo" placeholder="Ej: turno m&eacute;dico, asunto familiar, estudios..." required/>
+    </div>
+    <div class="form-group">
+      <label>Observaci&oacute;n <span style="color:var(--slate); font-size:10px;">(opcional)</span></label>
+      <input type="text" id="lic-obs" placeholder="Detalle adicional"/>
+    </div>
+
+    <div class="form-group">
+      <label>Certificado / justificativo <span style="color:var(--slate); font-size:10px;">(opcional &mdash; im&aacute;genes o PDF, m&aacute;x 2 MB)</span></label>
+      <div id="file-zone" onclick="document.getElementById('lic-archivo').click()" style="border:1px dashed var(--border); border-radius:8px; padding:16px; text-align:center; cursor:pointer; background:rgba(15,23,42,.4); transition:all .2s;">
+        <div id="file-zone-empty">
+          <div style="font-size:24px; margin-bottom:4px;">&#x1F4CE;</div>
+          <div style="font-size:12px; color:var(--muted);">Click para elegir archivo o foto</div>
+        </div>
+        <div id="file-zone-preview" style="display:none;"></div>
+      </div>
+      <input type="file" id="lic-archivo" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="onArchivoSelect(event)"/>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeLicenciaModal()">Cancelar</button>
+      <button class="btn-submit" onclick="submitLicencia()">Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DETALLE ==================== -->
+<div class="detail-overlay" id="lic-detail-overlay" onclick="if(event.target===this)closeLicDetail()">
+  <div class="detail-box">
+    <div class="detail-header">
+      <h2 id="lic-detail-title"></h2>
+      <button class="detail-close" onclick="closeLicDetail()">&#x2715;</button>
+    </div>
+    <div class="lic-info-grid" id="lic-detail-info"></div>
+    <div id="lic-detail-actions"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script src="spcd-utils.js"></script>
+<script src="spcd-dialog.js"></script>
+<script src="spcd-supabase.js"></script>
+<script>
+/* ===========================================================
+   SP CONTROL DATA — MÓDULO PERSONAL (Licencias)
+   =========================================================== */
+
+const SESSION_KEY = 'spcd_session';
+const SESSION_TIMEOUT = 8 * 60 * 60 * 1000;
+
+let currentUser   = null;
+let _licenciasCache = [];
+let _bandejaCache   = [];
+let _usuariosAll    = [];
+let _calDate        = new Date();
+
+/* ── Session ──────────────────────────────────────────── */
+function getSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (s && Date.now() - s.ts < SESSION_TIMEOUT) return s.user;
+    localStorage.removeItem(SESSION_KEY);
+  } catch(e) {}
+  return null;
+}
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ user, ts: Date.now() }));
+}
+
+/* ── Login ──────────────────────────────────────────── */
+async function doLogin(e) {
+  e.preventDefault();
+  const btn   = document.getElementById('btn-login-submit');
+  const errEl = document.getElementById('login-error');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  errEl.style.display = 'none';
+
+  try {
+    const username = document.getElementById('login-user').value.trim().toUpperCase();
+    const pin      = document.getElementById('login-pin').value.trim();
+
+    const result = await sbRpc('verificar_pin', { p_username: username, p_pin: pin });
+    if (!result || result.length === 0) throw new Error('Usuario o PIN incorrecto');
+
+    const user = result[0];
+    currentUser = user;
+    saveSession(user);
+    await enterApp();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  window.location.href = 'index.html';
+}
+
+async function enterApp() {
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+
+  document.getElementById('user-chip').textContent = currentUser.nombre + ' (' + (currentUser.rol || 'user').toUpperCase() + ')';
+  document.getElementById('user-chip').style.display = 'inline-block';
+  document.getElementById('btn-logout').style.display = 'inline-flex';
+  document.getElementById('btn-volver').style.display = 'none';
+
+  applyPermissions();
+
+  await Promise.all([loadUsuarios(), loadLicencias()]);
+}
+
+function applyPermissions() {
+  // Marcar body con la clase del rol actual
+  const rol = currentUser.rol || 'user';
+  document.body.classList.remove('spcd-rol-solicitante','spcd-rol-consultor','spcd-rol-mixto','spcd-rol-admin');
+  document.body.classList.add('spcd-rol-' + rol);
+
+  // Solo admin ve la Bandeja (aprobación)
+  const tabBandeja = document.querySelector('[data-tab="bandeja"]');
+  if (tabBandeja) {
+    tabBandeja.style.display = (rol === 'admin') ? '' : 'none';
+  }
+  // Todos ven Mis Solicitudes y Calendario
+}
+
+/* ── Carga de datos ──────────────────────────────────── */
+async function loadUsuarios() {
+  try {
+    _usuariosAll = await sbQuery('usuarios', 'select=id,username,nombre,rol&activo=eq.true&order=nombre');
+    // Poblar el select de compañeros
+    const sel = document.getElementById('lic-companero');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+        _usuariosAll
+          .filter(u => u.id !== currentUser.id)
+          .map(u => `<option value="${u.id}">${esc(u.nombre)} (${esc(u.username)})</option>`)
+          .join('');
+    }
+  } catch(e) { console.error('loadUsuarios error:', e); }
+}
+
+async function loadLicencias() {
+  const rol = currentUser.rol || 'user';
+
+  // Mis solicitudes (siempre las propias)
+  try {
+    _licenciasCache = await sbQuery('v_licencias',
+      `select=*&solicitante_id=eq.${currentUser.id}&order=fecha_creacion.desc`);
+    renderLicencias(_licenciasCache, 'misSolic-list');
+  } catch(e) {
+    console.error('loadLicencias (mis) error:', e);
+    _licenciasCache = [];
+    document.getElementById('misSolic-list').innerHTML = renderErrorLicencias(e);
+  }
+
+  // Bandeja (solo admin): todas las PENDIENTES
+  if (rol === 'admin') {
+    try {
+      _bandejaCache = await sbQuery('v_licencias',
+        `select=*&estado=eq.PENDIENTE&order=fecha_creacion.desc`);
+      renderBandeja(_bandejaCache, 'bandeja-list');
+      updateBandejaBadge(_bandejaCache.length);
+    } catch(e) {
+      console.error('loadLicencias (bandeja) error:', e);
+      _bandejaCache = [];
+      document.getElementById('bandeja-list').innerHTML = renderErrorLicencias(e);
+      updateBandejaBadge(0);
+    }
+  }
+
+  // Calendario: todas las aprobadas del mes visible
+  if (document.getElementById('panel-calendario').classList.contains('active')) {
+    try { renderCalendario(); } catch(e) { /* noop */ }
+  }
+}
+
+// SQL inline para crear la tabla (se puede copiar con un click).
+// Es idéntico al archivo supabase_licencias.sql del repo.
+const LICENCIAS_SQL = `-- SP CONTROL DATA — Módulo Personal (Licencias)
+CREATE TABLE IF NOT EXISTS licencias (
+  id               SERIAL PRIMARY KEY,
+  solicitante_id   UUID NOT NULL REFERENCES usuarios(id),
+  tipo             TEXT NOT NULL CHECK (tipo IN ('DIA_LIBRE','CAMBIO_TURNO','TARDE','TEMPRANO')),
+  fecha_desde      DATE NOT NULL,
+  fecha_hasta      DATE,
+  hora_desde       TIME,
+  hora_hasta       TIME,
+  motivo           TEXT,
+  observacion      TEXT,
+  companero_id     UUID REFERENCES usuarios(id),
+  companero_acepta BOOLEAN DEFAULT FALSE,
+  estado           TEXT NOT NULL DEFAULT 'PENDIENTE'
+                     CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO','CANCELADO')),
+  aprobado_por     UUID REFERENCES usuarios(id),
+  fecha_aprobacion TIMESTAMPTZ,
+  motivo_rechazo   TEXT,
+  fecha_creacion   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_licencias_solicitante ON licencias(solicitante_id);
+CREATE INDEX IF NOT EXISTS idx_licencias_estado      ON licencias(estado);
+CREATE INDEX IF NOT EXISTS idx_licencias_fecha       ON licencias(fecha_desde);
+CREATE INDEX IF NOT EXISTS idx_licencias_tipo        ON licencias(tipo);
+
+DROP VIEW IF EXISTS v_licencias;
+CREATE VIEW v_licencias AS
+SELECT
+  l.id, l.tipo, l.fecha_desde, l.fecha_hasta, l.hora_desde, l.hora_hasta,
+  l.motivo, l.observacion, l.estado, l.motivo_rechazo, l.companero_acepta,
+  l.fecha_creacion, l.fecha_aprobacion,
+  l.solicitante_id, u1.username AS solicitante, u1.nombre AS solicitante_nombre,
+  l.aprobado_por,   u2.username AS aprobado_por_username, u2.nombre AS aprobado_por_nombre,
+  l.companero_id,   u3.username AS companero_username,    u3.nombre AS companero_nombre
+FROM licencias l
+LEFT JOIN usuarios u1 ON u1.id = l.solicitante_id
+LEFT JOIN usuarios u2 ON u2.id = l.aprobado_por
+LEFT JOIN usuarios u3 ON u3.id = l.companero_id;`;
+
+async function copiarSQL() {
+  try {
+    await navigator.clipboard.writeText(LICENCIAS_SQL);
+    const btn = document.getElementById('btn-copiar-sql');
+    if (btn) {
+      btn.innerHTML = '\u2705 Copiado';
+      setTimeout(() => { btn.innerHTML = '\u{1F4CB} Copiar SQL'; }, 2500);
+    }
+    showToast('SQL copiado al portapapeles', 'success');
+  } catch(e) {
+    await spcdAlert('No se pudo copiar autom\u00e1ticamente. Selecc\u00edon\u00e1 el texto y us\u00e1 Ctrl+C.', { type:'alert' });
+  }
+}
+
+function renderErrorLicencias(e) {
+  const msg = String(e && e.message || e || 'error desconocido');
+  const esTablaFaltante = /relation.*does not exist|v_licencias|licencias/i.test(msg)
+    || msg.includes('404') || msg.includes('DB error: 404');
+
+  if (esTablaFaltante) {
+    return `<div style="max-width:720px; margin:20px auto; background:rgba(15,23,42,.55); border:1px solid var(--border); border-radius:14px; padding:28px;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:48px; margin-bottom:8px;">\u{1F527}</div>
+        <h3 style="font-family:'Rajdhani',sans-serif; font-size:22px; letter-spacing:3px; color:var(--sky); margin-bottom:6px;">Configurar base de datos</h3>
+        <p style="color:var(--muted); font-size:13px;">Hac\u00e9 estos 3 pasos (toma 30 segundos) y el m\u00f3dulo queda funcionando.</p>
+      </div>
+
+      <div style="background:rgba(167,139,250,.08); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; gap:12px; margin-bottom:8px; align-items:flex-start;">
+          <span style="background:var(--sky); color:var(--navy); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">1</span>
+          <div style="flex:1;">
+            <strong style="color:var(--text);">Copi\u00e1 el SQL</strong>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">Contiene la tabla, \u00edndices y la vista.</div>
+          </div>
+          <button id="btn-copiar-sql" onclick="copiarSQL()" class="btn-submit" style="padding:8px 16px; font-size:11px; white-space:nowrap;">\u{1F4CB} Copiar SQL</button>
+        </div>
+      </div>
+
+      <div style="background:rgba(167,139,250,.08); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; gap:12px; margin-bottom:8px; align-items:flex-start;">
+          <span style="background:var(--sky); color:var(--navy); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">2</span>
+          <div style="flex:1;">
+            <strong style="color:var(--text);">Abr\u00ed Supabase y peg\u00e1 el SQL</strong>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">Se abre en una pesta\u00f1a nueva. Peg\u00e1 con Ctrl+V y click en "Run".</div>
+          </div>
+          <a href="https://supabase.com/dashboard/project/erjdncsnomwymjiaslpx/sql/new" target="_blank" rel="noopener" class="btn-submit" style="padding:8px 16px; font-size:11px; white-space:nowrap; display:inline-flex; align-items:center; text-decoration:none; background:linear-gradient(135deg, #3ECF8E, #22DBAE);">\u2197 Abrir Supabase</a>
+        </div>
+      </div>
+
+      <div style="background:rgba(167,139,250,.08); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; gap:12px; margin-bottom:8px; align-items:flex-start;">
+          <span style="background:var(--sky); color:var(--navy); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;">3</span>
+          <div style="flex:1;">
+            <strong style="color:var(--text);">Volv\u00e9 ac\u00e1 y refresc\u00e1</strong>
+            <div style="color:var(--muted); font-size:12px; margin-top:2px;">Apret\u00e1 este bot\u00f3n y listo.</div>
+          </div>
+          <button onclick="loadLicencias()" class="btn-secondary" style="padding:8px 16px; font-size:11px; white-space:nowrap;">\u{1F504} Reintentar</button>
+        </div>
+      </div>
+
+      <details style="margin-top:16px;">
+        <summary style="cursor:pointer; color:var(--muted); font-size:11px; letter-spacing:1px; text-transform:uppercase;">Ver el SQL completo (opcional)</summary>
+        <pre style="background:#0a1020; border:1px solid var(--border); border-radius:8px; padding:14px; margin-top:8px; color:#94A3B8; font-size:11px; font-family:monospace; overflow-x:auto; white-space:pre-wrap; max-height:260px; overflow-y:auto;">${esc(LICENCIAS_SQL)}</pre>
+      </details>
+
+      <p style="font-size:10px; color:var(--muted); margin-top:14px; text-align:center;">Error t\u00e9cnico: ${esc(msg)}</p>
+    </div>`;
+  }
+
+  return `<div class="empty-state">
+    <div class="es-icon">\u26A0\uFE0F</div>
+    <h3>Error al cargar</h3>
+    <p>${esc(msg)}</p>
+  </div>`;
+}
+
+function updateBandejaBadge(n) {
+  const tab = document.querySelector('[data-tab="bandeja"]');
+  if (!tab) return;
+  const old = tab.querySelector('.tab-badge');
+  if (old) old.remove();
+  if (n > 0) {
+    const b = document.createElement('span');
+    b.className = 'tab-badge';
+    b.textContent = n;
+    tab.appendChild(b);
+  }
+  document.title = (n > 0 ? `(${n}) ` : '') + 'M\u00f3dulo Personal \u00b7 SP Control Data';
+}
+
+/* ── Render helpers ──────────────────────────────────── */
+const TIPO_LABELS = {
+  DIA_LIBRE:    'D\u00eda libre',
+  CAMBIO_TURNO: 'Cambio turno',
+  TARDE:        'Llegar tarde',
+  TEMPRANO:     'Salir temprano'
+};
+const TIPO_CLASES = {
+  DIA_LIBRE:    'dia-libre',
+  CAMBIO_TURNO: 'cambio-turno',
+  TARDE:        'tarde',
+  TEMPRANO:     'temprano'
+};
+
+function contarDiasLicencia(fechaDesdeIso, fechaHastaIso) {
+  if (!fechaDesdeIso) return 0;
+  const d1 = new Date(String(fechaDesdeIso).slice(0,10) + 'T00:00:00');
+  const d2 = fechaHastaIso
+    ? new Date(String(fechaHastaIso).slice(0,10) + 'T00:00:00')
+    : d1;
+  const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+  return Math.max(1, diff + 1); // inclusivo
+}
+
+function formatoFechaLicencia(lic) {
+  const d1 = fmtDate(lic.fecha_desde);
+
+  // TARDE / TEMPRANO: es un d\u00eda puntual con cambio de horario
+  if (lic.hora_desde || lic.hora_hasta) {
+    const hd = (lic.hora_desde || '').slice(0,5);
+    const hh = (lic.hora_hasta || '').slice(0,5);
+    return d1 + ' (' + hd + (hh ? ' a ' + hh : '') + ')';
+  }
+
+  // Rango con fecha_hasta distinta
+  if (lic.fecha_hasta && lic.fecha_hasta !== lic.fecha_desde) {
+    const dias = contarDiasLicencia(lic.fecha_desde, lic.fecha_hasta);
+    return d1 + ' \u2192 ' + fmtDate(lic.fecha_hasta) + ` <span style="color:var(--sky);">(${dias} d\u00edas)</span>`;
+  }
+
+  // Un solo d\u00eda (con o sin fecha_hasta igual)
+  return d1 + ' <span style="color:var(--sky);">(1 d\u00eda)</span>';
+}
+
+function renderLicencias(licencias, containerId) {
+  const container = document.getElementById(containerId);
+  if (!licencias || licencias.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="es-icon">&#x1F4C5;</div><h3>Sin solicitudes</h3><p>No tenés solicitudes de licencia registradas.</p></div>';
+    return;
+  }
+
+  container.innerHTML = licencias.map(l => {
+    const tipoCls = TIPO_CLASES[l.tipo] || '';
+    const estCls = 'lic-estado estado-' + l.estado.toLowerCase() + ' ' + l.estado.toLowerCase();
+    return `<div class="licencia-card" onclick="showLicDetail(${l.id})">
+      <div class="lic-header">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="lic-id">#${l.id}</span>
+          <span class="lic-tipo ${tipoCls}">${TIPO_LABELS[l.tipo] || l.tipo}</span>
+        </div>
+        <span class="lic-estado ${l.estado.toLowerCase()}">${l.estado}</span>
+      </div>
+      <div class="lic-meta">
+        Solicitante: <strong>${esc(l.solicitante_nombre || '-')}</strong> &middot;
+        Fecha: <strong>${formatoFechaLicencia(l)}</strong>
+        ${l.motivo ? '<br>Motivo: ' + esc(l.motivo) : ''}
+        ${l.companero_nombre ? '<br>Cambio con: <strong>' + esc(l.companero_nombre) + '</strong>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBandeja(licencias, containerId) {
+  const container = document.getElementById(containerId);
+  if (!licencias || licencias.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="es-icon">&#x2705;</div><h3>Sin pendientes</h3><p>No hay solicitudes esperando aprobaci\u00f3n.</p></div>';
+    return;
+  }
+
+  container.innerHTML = licencias.map(l => {
+    const tipoCls = TIPO_CLASES[l.tipo] || '';
+    return `<div class="licencia-card" onclick="showLicDetail(${l.id})">
+      <div class="lic-header">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="lic-id">#${l.id}</span>
+          <span class="lic-tipo ${tipoCls}">${TIPO_LABELS[l.tipo] || l.tipo}</span>
+        </div>
+        <span class="lic-estado pendiente">PENDIENTE</span>
+      </div>
+      <div class="lic-meta">
+        Solicitante: <strong>${esc(l.solicitante_nombre || '-')}</strong> &middot;
+        Fecha: <strong>${formatoFechaLicencia(l)}</strong>
+        ${l.motivo ? '<br>Motivo: ' + esc(l.motivo) : ''}
+        ${l.companero_nombre ? '<br>Cambio con: <strong>' + esc(l.companero_nombre) + '</strong>' : ''}
+      </div>
+      <div class="form-actions">
+        <button class="btn-submit" onclick="event.stopPropagation();aprobarLicencia(${l.id})">&#x2705; Aprobar</button>
+        <button class="btn-secondary" style="border-color:var(--red); color:var(--red);" onclick="event.stopPropagation();rechazarLicencia(${l.id})">&#x274C; Rechazar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Modal Nueva Licencia ──────────────────────────────── */
+function showNewLicencia() {
+  document.getElementById('modal-licencia').classList.add('active');
+  document.getElementById('lic-tipo').value = 'DIA_LIBRE';
+  document.getElementById('lic-fecha-desde').value = '';
+  document.getElementById('lic-fecha-hasta').value = '';
+  document.getElementById('lic-hora-desde').value = '';
+  document.getElementById('lic-hora-hasta').value = '';
+  document.getElementById('lic-companero').value = '';
+  document.getElementById('lic-motivo').value = '';
+  document.getElementById('lic-obs').value = '';
+  document.getElementById('lic-dias-info').style.display = 'none';
+  quitarArchivo();
+  onTipoChange();
+}
+function closeLicenciaModal() {
+  document.getElementById('modal-licencia').classList.remove('active');
+}
+
+function onTipoChange() {
+  const tipo = document.getElementById('lic-tipo').value;
+  const grpFechas    = document.getElementById('grp-fechas');
+  const grpHoras     = document.getElementById('grp-horas');
+  const grpCompanero = document.getElementById('grp-companero');
+  const lblDesde = document.getElementById('lbl-desde');
+  const lblHasta = document.getElementById('lbl-hasta');
+
+  // Reset
+  grpHoras.style.display = 'none';
+  grpCompanero.style.display = 'none';
+  grpFechas.style.display = 'grid';
+
+  // Labels contextuales segun tipo (siempre con asterisco rojo = obligatorios)
+  const req = ' <span class="req">*</span>';
+  if (tipo === 'DIA_LIBRE') {
+    lblDesde.innerHTML = 'Fecha desde' + req;
+    lblHasta.innerHTML = 'Fecha hasta' + req;
+  } else if (tipo === 'CAMBIO_TURNO') {
+    grpCompanero.style.display = 'block';
+    lblDesde.innerHTML = 'Fecha del cambio' + req;
+    lblHasta.innerHTML = 'Hasta fecha' + req;
+  } else if (tipo === 'TARDE' || tipo === 'TEMPRANO') {
+    grpHoras.style.display = 'grid';
+    lblDesde.innerHTML = 'Fecha' + req;
+    lblHasta.innerHTML = 'Hasta fecha' + req;
+  }
+
+  // Recalcular indicador de d\u00edas con el tipo nuevo
+  onFechasChange();
+}
+
+// Calcula y muestra la cantidad de d\u00edas solicitados debajo de las fechas.
+function onFechasChange() {
+  const desde = document.getElementById('lic-fecha-desde').value;
+  const hasta = document.getElementById('lic-fecha-hasta').value;
+  const info  = document.getElementById('lic-dias-info');
+  const tipo  = document.getElementById('lic-tipo').value;
+
+  if (!desde || !hasta) {
+    info.style.display = 'none';
+    return;
+  }
+
+  const d1 = new Date(desde + 'T00:00:00');
+  const d2 = new Date(hasta + 'T00:00:00');
+  const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+
+  let color, bg, border, icon, texto;
+  if (diff < 0) {
+    // Hasta anterior a desde -> error
+    color  = 'var(--red)';
+    bg     = 'rgba(239,68,68,.1)';
+    border = 'rgba(239,68,68,.3)';
+    icon   = '\u26A0\uFE0F';
+    texto  = 'La fecha hasta es anterior a la fecha desde.';
+  } else {
+    const dias = diff + 1; // inclusivo (ambos extremos cuentan)
+    const plural = dias === 1 ? 'd\u00eda' : 'd\u00edas';
+    color  = 'var(--sky)';
+    bg     = 'rgba(167,139,250,.12)';
+    border = 'rgba(167,139,250,.35)';
+    if (tipo === 'TARDE' || tipo === 'TEMPRANO') {
+      icon  = '\u23F0';
+      texto = `Cambio de horario en <strong>${dias} ${plural}</strong>`;
+    } else if (tipo === 'CAMBIO_TURNO') {
+      icon  = '\u{1F504}';
+      texto = `Est\u00e1s solicitando el cambio por <strong>${dias} ${plural}</strong>`;
+    } else {
+      icon  = '\u{1F4C5}';
+      texto = `Est\u00e1s solicitando <strong>${dias} ${plural}</strong>`;
+    }
+  }
+
+  info.style.display = 'block';
+  info.innerHTML = `<div style="padding:10px 14px; border-radius:8px; background:${bg}; border:1px solid ${border}; color:${color}; font-size:13px; display:flex; align-items:center; gap:10px;">
+    <span style="font-size:18px;">${icon}</span>
+    <span>${texto}</span>
+  </div>`;
+}
+
+// ── Upload y compresión de archivo ─────────────────────
+let _adjuntoActual = null; // { base64, nombre, tipo, tamanoKB }
+const MAX_ARCHIVO_KB = 2048; // 2 MB después de compresión
+
+async function onArchivoSelect(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+
+  const zone        = document.getElementById('file-zone');
+  const emptyEl     = document.getElementById('file-zone-empty');
+  const previewEl   = document.getElementById('file-zone-preview');
+
+  // Validar tipo
+  const esImagen = file.type.startsWith('image/');
+  const esPdf    = file.type === 'application/pdf';
+  if (!esImagen && !esPdf) {
+    await spcdAlert('Formato no soportado. Sub\u00ed una imagen (JPG/PNG/HEIC) o un PDF.', { type:'error', title:'Archivo inv\u00e1lido' });
+    evt.target.value = '';
+    return;
+  }
+
+  // Validar tamaño inicial
+  if (file.size > 10 * 1024 * 1024) {
+    await spcdAlert('El archivo supera los 10 MB. Sub\u00ed uno m\u00e1s chico o una foto de menor resoluci\u00f3n.',
+      { type:'error', title:'Archivo muy grande' });
+    evt.target.value = '';
+    return;
+  }
+
+  previewEl.innerHTML = '<div style="font-size:12px; color:var(--muted); padding:12px;">Procesando archivo...</div>';
+  emptyEl.style.display = 'none';
+  previewEl.style.display = 'block';
+  zone.classList.add('has-file');
+
+  try {
+    let base64, tipoFinal = file.type, nombreFinal = file.name;
+    if (esImagen) {
+      // Comprimir imagen (max 1200px lado mayor, JPEG quality 0.75)
+      base64 = await comprimirImagen(file, 1200, 0.75);
+      tipoFinal = 'image/jpeg';
+    } else {
+      // PDF: validar tamaño directo
+      if (file.size > MAX_ARCHIVO_KB * 1024) {
+        throw new Error(`El PDF pesa ${(file.size/1024/1024).toFixed(1)} MB. M\u00e1ximo: ${(MAX_ARCHIVO_KB/1024).toFixed(0)} MB.`);
+      }
+      base64 = await fileToBase64(file);
+    }
+
+    const tamanoKB = Math.round(base64.length * 0.75 / 1024);
+    if (tamanoKB > MAX_ARCHIVO_KB) {
+      throw new Error(`El archivo (luego de comprimir) pesa ${(tamanoKB/1024).toFixed(1)} MB. Sub\u00ed uno de menor resoluci\u00f3n.`);
+    }
+
+    _adjuntoActual = { base64, nombre: nombreFinal, tipo: tipoFinal, tamanoKB };
+
+    // Render preview
+    if (esImagen) {
+      previewEl.innerHTML = `
+        <img src="data:${tipoFinal};base64,${base64}" alt="preview"/>
+        <div style="font-size:11px; color:var(--muted);">${esc(nombreFinal)} &middot; ${tamanoKB} KB</div>
+        <button type="button" class="file-remove-btn" onclick="event.stopPropagation();quitarArchivo()">&#x2716; Quitar</button>
+      `;
+    } else {
+      previewEl.innerHTML = `
+        <div class="file-pdf-chip">&#x1F4C4; ${esc(nombreFinal)}</div>
+        <div style="font-size:11px; color:var(--muted);">PDF &middot; ${tamanoKB} KB</div>
+        <button type="button" class="file-remove-btn" onclick="event.stopPropagation();quitarArchivo()">&#x2716; Quitar</button>
+      `;
+    }
+  } catch(e) {
+    previewEl.innerHTML = `<div style="color:var(--red); font-size:12px;">Error: ${esc(e.message)}</div>`;
+    zone.classList.remove('has-file');
+    _adjuntoActual = null;
+    evt.target.value = '';
+  }
+}
+
+function quitarArchivo() {
+  _adjuntoActual = null;
+  document.getElementById('lic-archivo').value = '';
+  document.getElementById('file-zone-empty').style.display = 'block';
+  document.getElementById('file-zone-preview').style.display = 'none';
+  document.getElementById('file-zone-preview').innerHTML = '';
+  document.getElementById('file-zone').classList.remove('has-file');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload  = () => resolve(String(r.result).split(',')[1]); // remover prefijo "data:...;base64,"
+    r.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    r.readAsDataURL(file);
+  });
+}
+
+function comprimirImagen(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = height * (maxDim / width); width = maxDim; }
+        else if (height > maxDim)              { width = width * (maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(width);
+        canvas.height = Math.round(height);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = () => reject(new Error('Imagen inv\u00e1lida'));
+      img.src = r.result;
+    };
+    r.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function submitLicencia() {
+  const tipo        = document.getElementById('lic-tipo').value;
+  const fechaDesde  = document.getElementById('lic-fecha-desde').value;
+  const fechaHasta  = document.getElementById('lic-fecha-hasta').value || null;
+  const horaDesde   = document.getElementById('lic-hora-desde').value || null;
+  const horaHasta   = document.getElementById('lic-hora-hasta').value || null;
+  const companeroId = document.getElementById('lic-companero').value || null;
+  const motivo      = document.getElementById('lic-motivo').value.trim();
+  const obs         = document.getElementById('lic-obs').value.trim();
+
+  // Validaciones estrictas
+  if (!tipo) { await spcdAlert('Eleg\u00ed un tipo de solicitud', { type:'alert', title:'Falta tipo' }); return; }
+  if (!fechaDesde) { await spcdAlert('Indic\u00e1 la fecha de inicio', { type:'alert', title:'Falta fecha desde' }); return; }
+  if (!fechaHasta) { await spcdAlert('Indic\u00e1 la fecha hasta (si es un solo d\u00eda, pon\u00e9 la misma que la fecha desde).',
+    { type:'alert', title:'Falta fecha hasta' }); return; }
+  if (fechaHasta < fechaDesde) {
+    await spcdAlert('La fecha hasta no puede ser anterior a la fecha desde.', { type:'error', title:'Fechas inv\u00e1lidas' });
+    return;
+  }
+  if (!motivo) { await spcdAlert('Indic\u00e1 un motivo para la solicitud', { type:'alert', title:'Falta motivo' }); return; }
+  if (tipo === 'CAMBIO_TURNO' && !companeroId) {
+    await spcdAlert('Eleg\u00ed el compa\u00f1ero con quien camb\u00edas turno.', { type:'alert', title:'Falta compa\u00f1ero' });
+    return;
+  }
+  if ((tipo === 'TARDE' || tipo === 'TEMPRANO') && !horaDesde) {
+    await spcdAlert('Indic\u00e1 la hora desde que aplica el cambio.', { type:'alert', title:'Falta hora' });
+    return;
+  }
+  if (tipo === 'TARDE' && horaDesde && horaHasta && horaHasta < horaDesde) {
+    await spcdAlert('La hora hasta no puede ser anterior a la hora desde.', { type:'error', title:'Horas inv\u00e1lidas' });
+    return;
+  }
+
+  try {
+    const data = {
+      solicitante_id: currentUser.id,
+      tipo,
+      fecha_desde: fechaDesde,
+      fecha_hasta: fechaHasta,
+      hora_desde:  horaDesde,
+      hora_hasta:  horaHasta,
+      motivo:      motivo,
+      observacion: obs || null,
+      companero_id: companeroId,
+      estado:      'PENDIENTE'
+    };
+    if (_adjuntoActual) {
+      data.adjunto_base64 = _adjuntoActual.base64;
+      data.adjunto_nombre = _adjuntoActual.nombre;
+      data.adjunto_tipo   = _adjuntoActual.tipo;
+    }
+    let row;
+    try {
+      [row] = await sbInsert('licencias', data);
+    } catch(e) {
+      // Si falla por columnas de adjunto faltantes, reintentar sin adjunto y avisar
+      if (_adjuntoActual && /adjunto_|column/i.test(String(e.message))) {
+        delete data.adjunto_base64; delete data.adjunto_nombre; delete data.adjunto_tipo;
+        [row] = await sbInsert('licencias', data);
+        showToast('Solicitud enviada. El archivo no se guard\u00f3: actualiz\u00e1 la tabla en Supabase.', 'warning');
+      } else {
+        throw e;
+      }
+    }
+    showToast('Solicitud #' + row.id + ' enviada', 'success');
+    quitarArchivo();
+    closeLicenciaModal();
+    await loadLicencias();
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error', title:'No se pudo enviar' });
+  }
+}
+
+/* ── Detalle ─────────────────────────────────────────── */
+async function showLicDetail(id) {
+  try {
+    const [lic] = await sbQuery('v_licencias', `select=*&id=eq.${id}`);
+    if (!lic) { showToast('Solicitud no encontrada', 'error'); return; }
+
+    document.getElementById('lic-detail-title').textContent = `SOLICITUD #${lic.id}`;
+    document.getElementById('lic-detail-info').innerHTML = `
+      <div>Tipo: <strong>${TIPO_LABELS[lic.tipo] || lic.tipo}</strong></div>
+      <div>Estado: <strong>${lic.estado}</strong></div>
+      <div>Solicitante: <strong>${esc(lic.solicitante_nombre || '-')}</strong></div>
+      <div>Fecha solicitud: <strong>${fmtDateTime(lic.fecha_creacion)}</strong></div>
+      <div>Fecha(s) pedida(s): <strong>${formatoFechaLicencia(lic)}</strong></div>
+      ${lic.companero_nombre ? '<div>Compa\u00f1ero: <strong>' + esc(lic.companero_nombre) + '</strong></div>' : ''}
+      ${lic.aprobado_por_username ? '<div>Aprobado por: <strong>' + esc(lic.aprobado_por_username) + '</strong></div>' : ''}
+      ${lic.fecha_aprobacion ? '<div>Fecha aprob/rech: <strong>' + fmtDateTime(lic.fecha_aprobacion) + '</strong></div>' : ''}
+      ${lic.motivo ? '<div style="grid-column:1/-1">Motivo: <strong>' + esc(lic.motivo) + '</strong></div>' : ''}
+      ${lic.observacion ? '<div style="grid-column:1/-1">Observaci\u00f3n: <strong>' + esc(lic.observacion) + '</strong></div>' : ''}
+      ${lic.motivo_rechazo ? '<div style="grid-column:1/-1; color:var(--red)">Motivo rechazo: <strong>' + esc(lic.motivo_rechazo) + '</strong></div>' : ''}
+      ${lic.tiene_adjunto || lic.adjunto_nombre ? '<div style="grid-column:1/-1">Adjunto: <strong><a href="#" onclick="event.preventDefault(); verAdjunto(' + lic.id + ')" style="color:var(--sky); text-decoration:underline; cursor:pointer;">&#x1F4CE; ' + esc(lic.adjunto_nombre || 'Ver archivo') + '</a></strong></div>' : ''}
+    `;
+
+    // Acciones según rol + estado
+    const actions = [];
+    const esDueno = lic.solicitante_id === currentUser.id;
+    const esAdmin = currentUser.rol === 'admin';
+
+    if (esAdmin && lic.estado === 'PENDIENTE') {
+      actions.push(`<button class="btn-submit" onclick="aprobarLicencia(${lic.id})">&#x2705; Aprobar</button>`);
+      actions.push(`<button class="btn-secondary" style="border-color:var(--red); color:var(--red);" onclick="rechazarLicencia(${lic.id})">&#x274C; Rechazar</button>`);
+    }
+    if (esDueno && lic.estado === 'PENDIENTE') {
+      actions.push(`<button class="btn-secondary" onclick="cancelarLicencia(${lic.id})">&#x1F5D1; Cancelar</button>`);
+    }
+
+    document.getElementById('lic-detail-actions').innerHTML = actions.length
+      ? `<div class="form-actions">${actions.join('')}</div>`
+      : '';
+
+    document.getElementById('lic-detail-overlay').classList.add('active');
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error' });
+  }
+}
+function closeLicDetail() {
+  document.getElementById('lic-detail-overlay').classList.remove('active');
+}
+
+// Trae el adjunto desde la tabla licencias (la vista v_licencias solo expone si existe,
+// el base64 lo pedimos on-demand). Abre en una pestaña nueva como data URL.
+async function verAdjunto(licId) {
+  try {
+    showToast('Cargando adjunto...', 'info');
+    const rows = await sbQuery('licencias', `select=adjunto_base64,adjunto_nombre,adjunto_tipo&id=eq.${licId}`);
+    if (!rows || !rows[0] || !rows[0].adjunto_base64) {
+      await spcdAlert('No se encontr\u00f3 el archivo.', { type:'error' });
+      return;
+    }
+    const { adjunto_base64, adjunto_nombre, adjunto_tipo } = rows[0];
+    const mime = adjunto_tipo || 'application/octet-stream';
+
+    // Convertir base64 a Blob para poder abrir como URL y descargar
+    const byteChars = atob(adjunto_base64);
+    const byteNums = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([new Uint8Array(byteNums)], { type: mime });
+    const url = URL.createObjectURL(blob);
+
+    // Abrir en nueva pestaña
+    const w = window.open(url, '_blank');
+    if (!w) {
+      // Fallback si el navegador bloquea popups: forzar descarga
+      const a = document.createElement('a');
+      a.href = url; a.download = adjunto_nombre || ('adjunto-' + licId);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+  } catch(e) {
+    await spcdAlert('No se pudo abrir el adjunto: ' + e.message, { type:'error' });
+  }
+}
+
+/* ── Acciones (admin) ────────────────────────────────── */
+async function aprobarLicencia(id) {
+  const ok = await spcdConfirm(`\u00bfAprobar la solicitud #${id}?`,
+    { title:'Aprobar licencia', okText:'S\u00ed, aprobar', type:'confirm' });
+  if (!ok) return;
+  try {
+    await sbUpdate('licencias', id, {
+      estado: 'APROBADO',
+      aprobado_por: currentUser.id,
+      fecha_aprobacion: new Date().toISOString()
+    });
+    showToast('Solicitud #' + id + ' aprobada', 'success');
+    closeLicDetail();
+    await loadLicencias();
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error' });
+  }
+}
+
+async function rechazarLicencia(id) {
+  const motivo = await spcdPrompt('Motivo del rechazo (opcional):', '',
+    { title:'Rechazar solicitud #' + id, okText:'Rechazar', placeholder:'Ej: ya hay otra persona de licencia ese d\u00eda' });
+  if (motivo === null) return;
+  try {
+    await sbUpdate('licencias', id, {
+      estado: 'RECHAZADO',
+      aprobado_por: currentUser.id,
+      fecha_aprobacion: new Date().toISOString(),
+      motivo_rechazo: (motivo || '').trim() || null
+    });
+    showToast('Solicitud #' + id + ' rechazada', 'success');
+    closeLicDetail();
+    await loadLicencias();
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error' });
+  }
+}
+
+async function cancelarLicencia(id) {
+  const ok = await spcdConfirm(`\u00bfCancelar tu solicitud #${id}?\n\nNo se puede deshacer.`,
+    { title:'Cancelar solicitud', okText:'S\u00ed, cancelar', cancelText:'Volver', type:'alert' });
+  if (!ok) return;
+  try {
+    await sbUpdate('licencias', id, { estado: 'CANCELADO' });
+    showToast('Solicitud #' + id + ' cancelada', 'success');
+    closeLicDetail();
+    await loadLicencias();
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error' });
+  }
+}
+
+/* ── Calendario ──────────────────────────────────────── */
+async function renderCalendario() {
+  try {
+    const year  = _calDate.getFullYear();
+    const month = _calDate.getMonth();
+
+    document.getElementById('cal-title').textContent =
+      _calDate.toLocaleDateString('es-AR', { month:'long', year:'numeric' }).toUpperCase();
+
+    // Traer licencias APROBADAS cuya fecha toque el mes
+    const first = new Date(year, month, 1).toISOString().slice(0,10);
+    const last  = new Date(year, month + 1, 0).toISOString().slice(0,10);
+    const licencias = await sbQuery('v_licencias',
+      `select=*&estado=eq.APROBADO&or=(fecha_desde.lte.${last},fecha_hasta.gte.${first})&order=fecha_desde.asc`);
+
+    // Armar grid del mes: arranca lunes
+    const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // 0=lun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrev  = new Date(year, month, 0).getDate();
+
+    const cells = [];
+    // Días del mes anterior (otro mes)
+    for (let i = firstDow - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrev - i, mes: 'prev' });
+    }
+    // Días del mes actual
+    for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, mes: 'cur', date: new Date(year, month, d) });
+    // Días del mes siguiente (completar grid hasta múltiplo de 7)
+    while (cells.length % 7 !== 0) cells.push({ day: cells.length - daysInMonth - firstDow + 1, mes: 'next' });
+
+    const hoy = new Date();
+    const hoyKey = hoy.toISOString().slice(0,10);
+
+    const html = cells.map(c => {
+      const classes = ['cal-day'];
+      if (c.mes !== 'cur') classes.push('other-month');
+      let chips = '';
+      if (c.mes === 'cur') {
+        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
+        if (dateKey === hoyKey) classes.push('today');
+        const lics = licencias.filter(l => {
+          const d = l.fecha_desde.slice(0,10);
+          const h = (l.fecha_hasta || l.fecha_desde).slice(0,10);
+          return dateKey >= d && dateKey <= h;
+        });
+        chips = lics.slice(0, 3).map(l => {
+          const cls = TIPO_CLASES[l.tipo] || '';
+          const label = esc((l.solicitante_nombre || l.solicitante || '').split(' ')[0]);
+          return `<span class="lic-chip ${cls}" title="${esc(l.solicitante_nombre||'')} - ${TIPO_LABELS[l.tipo]||''}" onclick="event.stopPropagation();showLicDetail(${l.id})">${label}</span>`;
+        }).join('');
+        if (lics.length > 3) chips += `<span style="font-size:10px; color:var(--muted);">+${lics.length - 3} m\u00e1s</span>`;
+      }
+      return `<div class="${classes.join(' ')}"><div class="cal-day-num">${c.day}</div>${chips}</div>`;
+    }).join('');
+
+    document.getElementById('cal-body').innerHTML = html;
+  } catch(e) {
+    console.error('renderCalendario:', e);
+  }
+}
+
+function calPrevMes() { _calDate.setMonth(_calDate.getMonth() - 1); renderCalendario(); }
+function calNextMes() { _calDate.setMonth(_calDate.getMonth() + 1); renderCalendario(); }
+
+/* ── Export Excel del mes ────────────────────────────── */
+async function exportLicenciasMes() {
+  try {
+    const year = _calDate.getFullYear();
+    const month = _calDate.getMonth();
+    const first = new Date(year, month, 1).toISOString().slice(0,10);
+    const last  = new Date(year, month + 1, 0).toISOString().slice(0,10);
+    const licencias = await sbQuery('v_licencias',
+      `select=*&fecha_desde=gte.${first}&fecha_desde=lte.${last}&order=fecha_desde.asc`);
+
+    if (!licencias.length) { await spcdAlert('No hay solicitudes en el mes seleccionado.', { type:'alert' }); return; }
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'SP Control Data';
+    const ws = wb.addWorksheet('Licencias');
+
+    const NAVY='FF0F172A', BLUE='FF3B82F6', WHITE='FFE2E8F0', BLUED='FF1E3A8A', CYAN='FF22DBAE', SURF='FF111827';
+
+    ws.mergeCells(1, 1, 1, 10);
+    const t1 = ws.getCell('A1');
+    t1.value = `LICENCIAS Y CAMBIOS DE TURNO — ${_calDate.toLocaleDateString('es-AR', { month:'long', year:'numeric' }).toUpperCase()}`;
+    t1.font = { name:'Calibri', size:14, bold:true, color:{ argb:WHITE } };
+    t1.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:NAVY } };
+    t1.alignment = { horizontal:'center', vertical:'middle' };
+    ws.getRow(1).height = 32;
+
+    const headers = ['#','Solicitante','Tipo','Desde','Hasta','Hora Desde','Hora Hasta','Motivo','Compañero','Estado'];
+    const hr = ws.getRow(3);
+    headers.forEach((h,i) => {
+      const c = hr.getCell(i+1);
+      c.value = h;
+      c.font = { name:'Calibri', size:10, bold:true, color:{ argb:WHITE } };
+      c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:BLUE } };
+      c.alignment = { horizontal:'center', vertical:'middle' };
+    });
+    hr.height = 22;
+    [6,22,16,12,12,12,12,30,22,12].forEach((w,i) => ws.getColumn(i+1).width = w);
+
+    licencias.forEach((l, idx) => {
+      const row = ws.getRow(4 + idx);
+      const bg = idx % 2 === 0 ? SURF : 'FF1A2332';
+      [
+        l.id,
+        l.solicitante_nombre || '',
+        TIPO_LABELS[l.tipo] || l.tipo,
+        l.fecha_desde || '',
+        l.fecha_hasta || '',
+        l.hora_desde ? l.hora_desde.slice(0,5) : '',
+        l.hora_hasta ? l.hora_hasta.slice(0,5) : '',
+        l.motivo || '',
+        l.companero_nombre || '',
+        l.estado
+      ].forEach((v, i) => {
+        const c = row.getCell(i+1);
+        c.value = v;
+        c.font = { name:'Calibri', size:9, color:{ argb:WHITE } };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:bg } };
+        c.alignment = { vertical:'middle', wrapText:true };
+      });
+      row.height = 18;
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SPCD_Licencias_${year}-${String(month+1).padStart(2,'0')}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`Excel descargado (${licencias.length} solicitudes)`, 'success');
+  } catch(e) {
+    await spcdAlert('Error al exportar: ' + e.message, { type:'error' });
+  }
+}
+
+/* ── Navegación tabs ─────────────────────────────────── */
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (tab === 'calendario') renderCalendario();
+}
+
+/* ── Init ────────────────────────────────────────────── */
+(function init() {
+  const saved = getSession();
+  if (saved) {
+    currentUser = saved;
+    enterApp();
+  }
+})();
+</script>
+
+<script src="spcd-bg.js?v=2"></script>
+</body>
+</html>
