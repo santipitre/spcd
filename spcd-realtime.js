@@ -240,14 +240,14 @@ async function spcdMostrarDiagnostico() {
 
   if (!d.browser.soportaNotificaciones) problemas.push('\u274C El navegador no soporta notificaciones. Us\u00e1 Chrome/Firefox/Edge actualizado.');
   else if (d.browser.permisoActual === 'denied') problemas.push('\u274C Notificaciones BLOQUEADAS para este sitio. Ve\u00e9 al candado de la barra de direcci\u00f3n \u2192 "Notificaciones" \u2192 "Permitir" \u2192 recarg\u00e1 la p\u00e1gina.');
-  else if (d.browser.permisoActual === 'default') problemas.push('\u26A0 Notificaciones sin permiso concedido a\u00fan. Cerr\u00e1 sesi\u00f3n y volv\u00e9 a entrar \u2014 aparece el modal para aceptar.');
+  else if (d.browser.permisoActual === 'default') problemas.push('\u26A0 Las notificaciones del navegador est\u00e1n sin activar. Apret\u00e1 el bot\u00f3n "\u2705 Activar notificaciones" abajo.');
 
   if (!d.scripts.supabaseJsCargado) problemas.push('\u274C supabase-js no est\u00e1 cargado. \u00bfHay red? Refresc\u00e1 con Ctrl+F5.');
   if (!d.scripts.spcdSupabaseConstantes) problemas.push('\u274C spcd-supabase.js no disponible.');
   if (!d.scripts.spcdRealtimeFunciones) problemas.push('\u274C spcd-realtime.js no cargado.');
 
   if (d.realtime.suscripcionesActivas === 0 && d.usuario.rol === 'admin') {
-    problemas.push('\u26A0 Sos admin pero no hay suscripciones activas. Puede ser que (a) no diste permiso o (b) la tabla no tiene Realtime habilitado en Supabase. Correr:\n  ALTER PUBLICATION supabase_realtime ADD TABLE pedidos;\n  ALTER PUBLICATION supabase_realtime ADD TABLE licencias;');
+    problemas.push('\u26A0 Sos admin pero no hay suscripciones al canal Realtime. Posibles causas:\n  \u2022 La tabla no tiene Realtime habilitado en Supabase. Correr en SQL Editor:\n      ALTER PUBLICATION supabase_realtime ADD TABLE pedidos;\n      ALTER PUBLICATION supabase_realtime ADD TABLE licencias;\n  \u2022 Cerr\u00e1 sesi\u00f3n y volv\u00e9 a entrar para reintentar la suscripci\u00f3n.');
   }
 
   if (d.usuario.rol !== 'admin') {

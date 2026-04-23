@@ -774,7 +774,7 @@
     <!-- Estadisticas de PEDIDOS (visible admin/mixto) -->
     <div class="pedidos-stats" id="pedidos-stats" style="display:none; margin-top:28px;">
       <div class="dash-title" style="font-size:14px; letter-spacing:3px;">ESTAD&Iacute;STICAS DE PEDIDOS</div>
-      <div class="dash-sub" style="margin-bottom:16px">\u00daltimos 30 d\u00edas</div>
+      <div class="dash-sub" style="margin-bottom:16px">&Uacute;ltimos 30 d&iacute;as</div>
       <div class="stats-grid" id="pedidos-stats-grid">
         <div class="stat-card total"><div class="stat-val" id="ps-total">-</div><div class="stat-label">Pedidos 30d</div></div>
         <div class="stat-card bajo"><div class="stat-val" id="ps-pendientes">-</div><div class="stat-label">Pendientes ahora</div></div>
@@ -783,7 +783,7 @@
         <div class="stat-card critico"><div class="stat-val" id="ps-producto" style="font-size:14px; font-family:Inter,sans-serif; font-weight:700;">-</div><div class="stat-label">Producto top</div></div>
       </div>
       <div style="background:rgba(15,23,42,.45); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:16px;">
-        <div style="font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:10px;">Pedidos por d\u00eda</div>
+        <div style="font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:10px;">Pedidos por d&iacute;a</div>
         <div style="position:relative; height:180px;">
           <canvas id="ps-chart"></canvas>
         </div>
@@ -1298,11 +1298,11 @@ async function enterApp() {
 // y refresca la bandeja de aprobaci\u00f3n.
 async function initRealtimeAdminPedidos() {
   if (typeof subscribeToTable !== 'function') return;
-  const permOk = await requestNotifPermissionConOnboarding('pedido de insumos');
-  // Si no hay permiso, seguimos igual y nos suscribimos al canal
-  // (si hay permiso m\u00e1s tarde, va a disparar). No mostramos toast cada vez
-  // para no molestar: el usuario tiene el bot\u00f3n \u{1F514} para ver el estado.
-  if (!permOk) return;
+
+  // Pedir permiso en background (no bloquea la suscripci\u00f3n).
+  // La suscripci\u00f3n al canal Realtime funciona SIEMPRE; el permiso solo
+  // define si se muestra la Notification del sistema al llegar un evento.
+  requestNotifPermissionConOnboarding('pedido de insumos').catch(() => {});
 
   subscribeToTable({
     channel: 'pedidos-rt-' + currentUser.id,
@@ -1320,11 +1320,13 @@ async function initRealtimeAdminPedidos() {
       } catch(e) {}
 
       const urgIcon = urg === 'EMERGENCIA' ? '\u{1F6A8}' : urg === 'URGENTE' ? '\u26A0\uFE0F' : '\u{1F4E6}';
+      // showSpcdNotification es no-op si no hay permiso (no rompe el flujo)
       showSpcdNotification(
         urgIcon + ' Nuevo pedido de insumos',
         `${quien} \u2014 ${servicio} \u00b7 ${urg}`,
         { url: window.location.pathname, tag: 'pedido-' + nuevo.id, requireInteraction: urg === 'EMERGENCIA' }
       );
+      // La bandeja se refresca SIEMPRE, aunque no haya permiso de notifs
       await loadPedidos();
     }
   });

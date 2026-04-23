@@ -686,9 +686,9 @@ async function enterApp() {
 // y se refresca la bandeja autom\u00e1ticamente.
 async function initRealtimeAdminLicencias() {
   if (typeof subscribeToTable !== 'function') return;
-  const permOk = await requestNotifPermissionConOnboarding('pedido de licencia');
-  // Silencioso si no hay permiso (el user tiene el bot\u00f3n \u{1F514} para activarlas).
-  if (!permOk) return;
+
+  // Pedir permiso en background, independiente de la suscripci\u00f3n Realtime.
+  requestNotifPermissionConOnboarding('pedido de licencia').catch(() => {});
 
   subscribeToTable({
     channel: 'licencias-rt-' + currentUser.id,
@@ -705,12 +705,13 @@ async function initRealtimeAdminLicencias() {
 
       const tipoLabel = TIPO_LABELS[nueva.tipo] || nueva.tipo || '-';
       const fecha = nueva.fecha_desde ? fmtDate(nueva.fecha_desde) : '';
+      // showSpcdNotification es no-op si no hay permiso
       showSpcdNotification(
         '\u{1F4C5} Nueva solicitud de licencia',
         `${quien} \u2014 ${tipoLabel}${fecha ? ' \u00b7 ' + fecha : ''}`,
         { url: window.location.pathname, tag: 'licencia-' + nueva.id }
       );
-      // Refrescar bandeja autom\u00e1ticamente
+      // La bandeja se refresca SIEMPRE
       await loadLicencias();
     }
   });
