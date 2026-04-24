@@ -672,7 +672,7 @@ async function enterApp() {
   document.getElementById('user-chip').textContent = currentUser.nombre + ' (' + (currentUser.rol || 'user').toUpperCase() + ')';
   document.getElementById('user-chip').style.display = 'inline-block';
   document.getElementById('btn-logout').style.display = 'inline-flex';
-  document.getElementById('btn-volver').style.display = 'none';
+  document.getElementById('btn-volver').style.display = 'inline-flex';
 
   applyPermissions();
 
