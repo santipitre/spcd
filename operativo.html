@@ -1391,6 +1391,9 @@ async function enterApp() {
   // Si viene desde link ?modo=pedidos, auto-abrir el tab Pedidos
   aplicarModoAccesoPostLogin();
 
+  // Si la URL tiene un #/tab, restaurar ese tab (útil para bookmarks/links directos)
+  spcdRestoreTabFromHash();
+
   // Notificaciones en tiempo real para admin
   if (currentUser.rol === 'admin') {
     initRealtimeAdminPedidos();
@@ -4134,12 +4137,50 @@ async function submitPedido() {
 // ============================================================
 // NAV
 // ============================================================
-function switchTab(tab) {
+function switchTab(tab, opts) {
+  opts = opts || {};
+  const previo = document.querySelector('.nav-tab.active');
+  const previoTab = previo ? previo.dataset.tab : null;
+
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
   // Lazy-load de tabs que lo necesitan
   if (tab === 'catalogo' && _catalogoCache.length === 0) {
     loadCatalogo();
+  }
+
+  // Actualizar hash de la URL y empujar al history (para que "Atrás" recuerde tabs).
+  // Saltear si venimos desde popstate (estamos volviendo) o si es el init.
+  if (!opts.fromPopState && !opts.initial && previoTab !== tab) {
+    const newHash = '#/' + tab;
+    if (window.location.hash !== newHash) {
+      try { window.history.pushState({ tab }, '', newHash); } catch(e) { /* noop */ }
+    }
+  }
+}
+
+// Al apretar "Atrás" del navegador: si el hash cambió a otro tab, activar ese tab.
+// Si el hash no es nuestro (ej: volvimos a la página anterior), dejar que el browser navegue.
+window.addEventListener('popstate', () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    const tab = hash.slice(2);
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn && !btn.classList.contains('hidden')) {
+      switchTab(tab, { fromPopState: true });
+    }
+  }
+});
+
+// Al cargar: si la URL tiene #/tab, activar ese tab (útil para bookmarks o link compartidos).
+function spcdRestoreTabFromHash() {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    const tab = hash.slice(2);
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn && !btn.classList.contains('hidden')) {
+      switchTab(tab, { initial: true });
+    }
   }
 }
 

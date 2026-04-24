@@ -678,6 +678,9 @@ async function enterApp() {
 
   await Promise.all([loadUsuarios(), loadLicencias()]);
 
+  // Restaurar tab desde URL si hay #/tab
+  spcdRestoreTabFromHash();
+
   // Notificaciones en tiempo real para admin
   if (currentUser.rol === 'admin') {
     initRealtimeAdminLicencias();
@@ -1670,10 +1673,46 @@ async function exportLicenciasMes() {
 }
 
 /* ── Navegación tabs ─────────────────────────────────── */
-function switchTab(tab) {
+function switchTab(tab, opts) {
+  opts = opts || {};
+  const previo = document.querySelector('.nav-tab.active');
+  const previoTab = previo ? previo.dataset.tab : null;
+
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
   if (tab === 'calendario') renderCalendario();
+
+  // Actualizar hash para que "Atrás" recuerde el cambio de tab
+  if (!opts.fromPopState && !opts.initial && previoTab !== tab) {
+    const newHash = '#/' + tab;
+    if (window.location.hash !== newHash) {
+      try { window.history.pushState({ tab }, '', newHash); } catch(e) { /* noop */ }
+    }
+  }
+}
+
+// Al apretar "Atrás" del navegador, restaurar tab del hash
+window.addEventListener('popstate', () => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    const tab = hash.slice(2);
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn && btn.style.display !== 'none') {
+      switchTab(tab, { fromPopState: true });
+    }
+  }
+});
+
+// Restaurar tab desde URL al cargar (para links directos con #/tab)
+function spcdRestoreTabFromHash() {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#/')) {
+    const tab = hash.slice(2);
+    const btn = document.querySelector(`[data-tab="${tab}"]`);
+    if (btn && btn.style.display !== 'none') {
+      switchTab(tab, { initial: true });
+    }
+  }
 }
 
 /* ── Init ────────────────────────────────────────────── */
