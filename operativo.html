@@ -753,6 +753,7 @@
     <button class="nav-tab" data-tab="movimientos" onclick="switchTab('movimientos')">Ingresos</button>
     <button class="nav-tab" data-tab="pedidos" onclick="switchTab('pedidos')">Pedidos</button>
     <button class="nav-tab hidden" data-tab="bandeja" onclick="switchTab('bandeja')">Bandeja</button>
+    <button class="nav-tab hidden" data-tab="catalogo" onclick="switchTab('catalogo')">Cat&aacute;logo</button>
   </div>
 
   <!-- ===== TAB: DASHBOARD ===== -->
@@ -1022,6 +1023,122 @@
       <div id="band-filtro-resumen" style="font-size:10px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:6px;"></div>
     </div>
     <div id="bandeja-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ===== TAB: CATALOGO (admin) ===== -->
+  <div class="tab-panel" id="panel-catalogo">
+    <div class="section-header">
+      <h2>CAT&Aacute;LOGO DE PRODUCTOS</h2>
+      <button class="btn-submit" onclick="showCrearProducto()">&#x2B; Nuevo producto</button>
+    </div>
+    <div class="pedidos-filtros">
+      <div class="ped-filtros-row">
+        <div class="ped-filtro-grp">
+          <label>Estado</label>
+          <select id="cat-f-estado" onchange="aplicarFiltrosCatalogo()">
+            <option value="">Todos</option>
+            <option value="activo" selected>Solo activos</option>
+            <option value="inactivo">Solo inactivos</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp">
+          <label>Tipo</label>
+          <select id="cat-f-tipo" onchange="aplicarFiltrosCatalogo()">
+            <option value="">Todos</option>
+            <option value="MED">Medicaci&oacute;n</option>
+            <option value="INS">Insumos</option>
+          </select>
+        </div>
+        <div class="ped-filtro-grp ped-filtro-grp-grow">
+          <label>Buscar (nombre / c&oacute;digo)</label>
+          <input type="text" id="cat-f-busca" placeholder="Ej: jeringa, 1111..." oninput="aplicarFiltrosCatalogo()"/>
+        </div>
+        <button class="btn-secondary" onclick="resetFiltrosCatalogo()" style="padding:8px 14px; font-size:11px; align-self:flex-end;">Limpiar</button>
+      </div>
+      <div id="cat-f-resumen" style="font-size:10px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:6px;"></div>
+    </div>
+    <div id="catalogo-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL PRODUCTO (crear/editar) ==================== -->
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal-box" style="max-width:560px">
+    <h3 style="color:var(--sky); margin:0">&#x1F4E6; <span id="modal-prod-titulo">Nuevo producto</span></h3>
+    <p style="margin:4px 0 16px 0">Complet&aacute; los datos del producto. Los campos con <span style="color:var(--red)">*</span> son obligatorios.</p>
+
+    <input type="hidden" id="prod-id"/>
+
+    <div class="form-group">
+      <label>Nombre <span style="color:var(--red)">*</span></label>
+      <input type="text" id="prod-nombre" placeholder="Ej: JERINGA DESCARTABLE 5ML"/>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tipo <span style="color:var(--red)">*</span></label>
+        <select id="prod-tipo">
+          <option value="INS">Insumo (INS)</option>
+          <option value="MED">Medicaci&oacute;n (MED)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>C&oacute;digo (stock_id_almacen) <span style="font-size:10px; color:var(--muted)">(opcional)</span></label>
+        <input type="number" id="prod-codigo" placeholder="Ej: 7410"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Subcategor&iacute;a <span style="font-size:10px; color:var(--muted)">(opcional)</span></label>
+      <input type="text" id="prod-subcategoria" placeholder="Ej: descartables, ampollas..."/>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Unidad base</label>
+        <input type="text" id="prod-unidad-base" placeholder="unidad, ml, mg" value="unidad"/>
+      </div>
+      <div class="form-group">
+        <label>Factor por caja</label>
+        <input type="number" id="prod-factor-caja" placeholder="1" value="1" min="1"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Nombre de caja <span style="font-size:10px; color:var(--muted)">(si factor &gt; 1)</span></label>
+      <input type="text" id="prod-nombre-caja" placeholder="Ej: Caja x100" value="Unidad"/>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Stock m&iacute;nimo (cr&iacute;tico)</label>
+        <input type="number" id="prod-stock-minimo" placeholder="0" value="0" min="0"/>
+      </div>
+      <div class="form-group">
+        <label>Punto de reposici&oacute;n</label>
+        <input type="number" id="prod-punto-reposicion" placeholder="0" value="0" min="0"/>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="prod-requiere-lote" style="width:auto; margin:0;"/>
+          <span>Requiere lote (vencimiento)</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="prod-activo" style="width:auto; margin:0;" checked/>
+          <span>Activo</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeProductoModal()">Cancelar</button>
+      <button class="btn-submit" onclick="submitProducto()">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -1373,9 +1490,10 @@ function applyPermissions() {
     document.querySelector('[data-tab="bandeja"]').classList.add('hidden');
   }
 
-  // admin: everything + bandeja, but INGRESOS only for SPITRELLA
+  // admin: everything + bandeja + catalogo, but INGRESOS only for SPITRELLA
   if (rol === 'admin') {
     document.querySelector('[data-tab="bandeja"]').classList.remove('hidden');
+    document.querySelector('[data-tab="catalogo"]').classList.remove('hidden');
     if (currentUser.username !== 'SPITRELLA') {
       document.querySelector('[data-tab="movimientos"]').classList.add('hidden');
     }
@@ -3492,6 +3610,194 @@ async function downloadPedidoExcel() {
 // ============================================================
 // LINK PARA SOLICITANTES — modal con link copiable + WhatsApp
 // ============================================================
+// ============================================================
+// CATÁLOGO DE PRODUCTOS (solo admin)
+// ============================================================
+let _catalogoCache = [];
+
+async function loadCatalogo() {
+  try {
+    // Traemos TODOS (activos e inactivos) para que admin pueda reactivar
+    _catalogoCache = await sbQuery('productos', 'select=*&order=activo.desc.nullslast,nombre.asc');
+    aplicarFiltrosCatalogo();
+  } catch(e) {
+    console.error('loadCatalogo error:', e);
+    document.getElementById('catalogo-list').innerHTML =
+      '<div class="empty-state"><div class="es-icon">\u26A0\uFE0F</div><h3>Error al cargar</h3><p>' + esc(e.message) + '</p></div>';
+  }
+}
+
+function aplicarFiltrosCatalogo() {
+  const estado = (document.getElementById('cat-f-estado')?.value || '').trim();
+  const tipo   = (document.getElementById('cat-f-tipo')?.value || '').trim();
+  const busca  = (document.getElementById('cat-f-busca')?.value || '').trim().toLowerCase();
+
+  let filtrados = _catalogoCache;
+  if (estado === 'activo')    filtrados = filtrados.filter(p => p.activo);
+  if (estado === 'inactivo')  filtrados = filtrados.filter(p => !p.activo);
+  if (tipo)                   filtrados = filtrados.filter(p => p.tipo === tipo);
+  if (busca) {
+    filtrados = filtrados.filter(p =>
+      (p.nombre || '').toLowerCase().includes(busca) ||
+      String(p.stock_id_almacen || '').includes(busca) ||
+      (p.subcategoria || '').toLowerCase().includes(busca)
+    );
+  }
+
+  renderCatalogo(filtrados, 'catalogo-list');
+  const resumen = document.getElementById('cat-f-resumen');
+  if (resumen) {
+    resumen.textContent = (filtrados.length !== _catalogoCache.length)
+      ? `Mostrando ${filtrados.length} de ${_catalogoCache.length}`
+      : `${_catalogoCache.length} producto(s)`;
+  }
+}
+
+function resetFiltrosCatalogo() {
+  ['cat-f-estado','cat-f-tipo','cat-f-busca'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = (id === 'cat-f-estado' ? 'activo' : '');
+  });
+  aplicarFiltrosCatalogo();
+}
+
+function renderCatalogo(productos, containerId) {
+  const container = document.getElementById(containerId);
+  if (!productos || productos.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="es-icon">\u{1F4E6}</div><h3>Sin productos</h3><p>No hay productos que coincidan con los filtros.</p></div>';
+    return;
+  }
+
+  container.innerHTML = productos.map(p => {
+    const tipoCls   = p.tipo === 'MED' ? 'tipo-med' : 'tipo-ins';
+    const activoCls = p.activo ? 'estado-aprobado' : 'estado-rechazado';
+    const activoTxt = p.activo ? 'ACTIVO' : 'INACTIVO';
+    const codigo    = p.stock_id_almacen ? `C\u00f3d: <strong>${p.stock_id_almacen}</strong> \u00b7 ` : '';
+    const factor    = p.factor_caja > 1 ? ` \u00b7 ${esc(p.nombre_caja || 'Caja')} x${p.factor_caja}` : '';
+    const lote      = p.requiere_lote ? ' \u00b7 <span style="color:var(--cyan)">con lote</span>' : '';
+
+    return `<div class="licencia-card" style="opacity:${p.activo ? '1' : '.6'};">
+      <div class="lic-header">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="lic-id">#${p.id}</span>
+          <span class="tipo-badge ${tipoCls}">${p.tipo}</span>
+          <strong style="color:var(--text); font-size:14px;">${esc(p.nombre)}</strong>
+        </div>
+        <span class="lic-estado ${activoCls}">${activoTxt}</span>
+      </div>
+      <div class="lic-meta">
+        ${codigo}${esc(p.subcategoria || '-')} \u00b7 ${esc(p.unidad_base || 'unidad')}${factor}${lote}
+        <br><span style="font-size:11px; color:var(--muted)">M\u00edn: ${p.stock_minimo || 0} \u00b7 Reposici\u00f3n: ${p.punto_reposicion || 0}</span>
+      </div>
+      <div class="form-actions" style="margin-top:10px">
+        <button class="btn-secondary" style="font-size:11px; padding:7px 14px;" onclick="showEditarProducto(${p.id})">&#x270E; Editar</button>
+        <button class="btn-secondary" style="font-size:11px; padding:7px 14px; border-color:${p.activo ? 'var(--red)' : 'var(--green)'}; color:${p.activo ? 'var(--red)' : 'var(--green)'};" onclick="toggleActivoProducto(${p.id}, ${!p.activo})">${p.activo ? '\u2716 Desactivar' : '\u21BA Reactivar'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showCrearProducto() {
+  document.getElementById('modal-producto').classList.add('active');
+  document.getElementById('modal-prod-titulo').textContent = 'Nuevo producto';
+  document.getElementById('prod-id').value            = '';
+  document.getElementById('prod-nombre').value        = '';
+  document.getElementById('prod-tipo').value          = 'INS';
+  document.getElementById('prod-codigo').value        = '';
+  document.getElementById('prod-subcategoria').value  = '';
+  document.getElementById('prod-unidad-base').value   = 'unidad';
+  document.getElementById('prod-factor-caja').value   = '1';
+  document.getElementById('prod-nombre-caja').value   = 'Unidad';
+  document.getElementById('prod-stock-minimo').value  = '0';
+  document.getElementById('prod-punto-reposicion').value = '0';
+  document.getElementById('prod-requiere-lote').checked = false;
+  document.getElementById('prod-activo').checked        = true;
+  setTimeout(() => document.getElementById('prod-nombre').focus(), 100);
+}
+
+function showEditarProducto(id) {
+  const p = _catalogoCache.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-producto').classList.add('active');
+  document.getElementById('modal-prod-titulo').textContent = 'Editar #' + id;
+  document.getElementById('prod-id').value            = p.id;
+  document.getElementById('prod-nombre').value        = p.nombre || '';
+  document.getElementById('prod-tipo').value          = p.tipo || 'INS';
+  document.getElementById('prod-codigo').value        = p.stock_id_almacen || '';
+  document.getElementById('prod-subcategoria').value  = p.subcategoria || '';
+  document.getElementById('prod-unidad-base').value   = p.unidad_base || 'unidad';
+  document.getElementById('prod-factor-caja').value   = p.factor_caja || 1;
+  document.getElementById('prod-nombre-caja').value   = p.nombre_caja || 'Unidad';
+  document.getElementById('prod-stock-minimo').value  = p.stock_minimo || 0;
+  document.getElementById('prod-punto-reposicion').value = p.punto_reposicion || 0;
+  document.getElementById('prod-requiere-lote').checked = !!p.requiere_lote;
+  document.getElementById('prod-activo').checked        = !!p.activo;
+}
+
+function closeProductoModal() {
+  document.getElementById('modal-producto').classList.remove('active');
+}
+
+async function submitProducto() {
+  const id = document.getElementById('prod-id').value.trim();
+  const nombre = document.getElementById('prod-nombre').value.trim();
+  if (!nombre) { await spcdAlert('El nombre es obligatorio', { type:'alert', title:'Falta nombre' }); return; }
+
+  const data = {
+    nombre,
+    tipo:             document.getElementById('prod-tipo').value,
+    stock_id_almacen: parseInt(document.getElementById('prod-codigo').value) || null,
+    subcategoria:     document.getElementById('prod-subcategoria').value.trim() || null,
+    unidad_base:      document.getElementById('prod-unidad-base').value.trim() || 'unidad',
+    factor_caja:      parseInt(document.getElementById('prod-factor-caja').value) || 1,
+    nombre_caja:      document.getElementById('prod-nombre-caja').value.trim() || 'Unidad',
+    stock_minimo:     parseInt(document.getElementById('prod-stock-minimo').value) || 0,
+    punto_reposicion: parseInt(document.getElementById('prod-punto-reposicion').value) || 0,
+    requiere_lote:    document.getElementById('prod-requiere-lote').checked,
+    activo:           document.getElementById('prod-activo').checked
+  };
+
+  try {
+    if (id) {
+      await sbUpdate('productos', id, data);
+      showToast('Producto #' + id + ' actualizado', 'success');
+    } else {
+      const [nuevo] = await sbInsert('productos', data);
+      showToast('Producto #' + nuevo.id + ' creado', 'success');
+    }
+    closeProductoModal();
+    await loadCatalogo();
+    // Recargar lista de productos del selector de pedidos
+    try {
+      productosAll = await sbQuery('productos', 'select=id,nombre,tipo,requiere_lote&activo=eq.true&order=nombre');
+    } catch(e) { /* silencioso */ }
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error', title:'No se pudo guardar' });
+  }
+}
+
+async function toggleActivoProducto(id, nuevoActivo) {
+  const verbo = nuevoActivo ? 'reactivar' : 'desactivar';
+  const ok = await spcdConfirm(
+    `\u00bf${verbo.charAt(0).toUpperCase() + verbo.slice(1)} el producto #${id}?\n\n` +
+    (nuevoActivo
+      ? 'Va a volver a aparecer en los selectores de pedidos.'
+      : 'No va a aparecer m\u00e1s en los selectores de pedidos, pero el hist\u00f3rico de pedidos lo mantiene como referencia.'),
+    { title: (nuevoActivo ? 'Reactivar' : 'Desactivar') + ' producto', okText: 'S\u00ed, ' + verbo, type: nuevoActivo ? 'confirm' : 'alert' }
+  );
+  if (!ok) return;
+  try {
+    await sbUpdate('productos', id, { activo: nuevoActivo });
+    showToast('Producto ' + (nuevoActivo ? 'reactivado' : 'desactivado'), 'success');
+    await loadCatalogo();
+    // Refrescar productos activos del selector de pedidos
+    try {
+      productosAll = await sbQuery('productos', 'select=id,nombre,tipo,requiere_lote&activo=eq.true&order=nombre');
+    } catch(e) {}
+  } catch(e) {
+    await spcdAlert('Error: ' + e.message, { type:'error' });
+  }
+}
+
 function buildLinkPedidos() {
   const base = window.location.origin + window.location.pathname;
   return base + '?modo=pedidos';
@@ -3667,12 +3973,12 @@ function addPedidoItem(prefillItem) {
   row.style.cssText = 'display:flex; flex-direction:column; gap:4px; margin-bottom:10px; padding:8px; border:1px solid var(--border); border-radius:6px; background:rgba(15,23,42,.35);';
   row.innerHTML = `
     <div style="display:flex; gap:8px; align-items:center;">
-      <select class="ped-prod" onchange="onPedidoProdChange(this)" style="flex:2; padding:8px 10px; border-radius:6px; background:rgba(15,23,42,.6); border:1px solid var(--border); color:var(--text); font-size:12px; font-family:'Inter',sans-serif;">
+      <select class="ped-prod" onchange="onPedidoProdChange(this)" style="flex:2 1 0; min-width:0; padding:8px 10px; border-radius:6px; background:rgba(15,23,42,.6); border:1px solid var(--border); color:var(--text); font-size:12px; font-family:'Inter',sans-serif; text-overflow:ellipsis;">
         <option value="">-- Producto --</option>
         ${productosAll.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}
       </select>
-      <input type="number" class="ped-qty" min="1" placeholder="Cant." oninput="onPedidoQtyChange(this)" style="flex:1; padding:8px 10px; border-radius:6px; background:rgba(15,23,42,.6); border:1px solid var(--border); color:var(--text); font-size:12px; font-family:'Inter',sans-serif;"/>
-      <button type="button" onclick="this.closest('.ped-item-row').remove()" style="background:none; border:none; color:var(--red); font-size:18px; cursor:pointer;" title="Eliminar">&#x2716;</button>
+      <input type="number" class="ped-qty" min="1" placeholder="Cant." oninput="onPedidoQtyChange(this)" style="flex:0 0 70px; min-width:0; padding:8px 10px; border-radius:6px; background:rgba(15,23,42,.6); border:1px solid var(--border); color:var(--text); font-size:12px; font-family:'Inter',sans-serif;"/>
+      <button type="button" onclick="this.closest('.ped-item-row').remove()" style="background:none; border:none; color:var(--red); font-size:18px; cursor:pointer; flex-shrink:0;" title="Eliminar">&#x2716;</button>
     </div>
     <div class="ped-stock-hint" style="font-size:10px; letter-spacing:1px; color:var(--muted); padding-left:2px; min-height:14px;"></div>
   `;
@@ -3853,6 +4159,10 @@ async function submitPedido() {
 function switchTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  // Lazy-load de tabs que lo necesitan
+  if (tab === 'catalogo' && _catalogoCache.length === 0) {
+    loadCatalogo();
+  }
 }
 
 // ============================================================

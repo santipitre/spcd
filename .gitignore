@@ -1,0 +1,19 @@
+# SPCD — Archivos locales que no van al repo público
+
+# Scripts admin one-off (fixes temporales, no deben vivir en producción)
+_*.html
+_*.sql
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
