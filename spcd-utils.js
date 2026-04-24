@@ -71,6 +71,22 @@ function fmtDateTime(d) {
   });
 }
 
+/* ── Navegación "atrás" ────────────────────────────────────
+   Usa history.back() si hay historial previo en la pestaña.
+   Si se abrió la pantalla directo (sin navegación previa)
+   o ya se fue todo el historial, cae al fallback (index.html
+   por default). Así nunca queda "colgado" un botón sin efecto.
+*/
+function spcdVolverAtras(fallbackUrl) {
+  try {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+  } catch(e) { /* silencioso */ }
+  window.location.href = fallbackUrl || 'index.html';
+}
+
 /* ── Toast de notificación (requiere <div id="toast"> en HTML) */
 function showToast(msg, type) {
   const t = document.getElementById('toast');
