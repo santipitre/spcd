@@ -1033,25 +1033,9 @@
     </div>
     <div class="pedidos-filtros">
       <div class="ped-filtros-row">
-        <div class="ped-filtro-grp">
-          <label>Estado</label>
-          <select id="cat-f-estado" onchange="aplicarFiltrosCatalogo()">
-            <option value="" selected>Todos</option>
-            <option value="activo">Solo activos</option>
-            <option value="inactivo">Solo inactivos</option>
-          </select>
-        </div>
-        <div class="ped-filtro-grp">
-          <label>Tipo</label>
-          <select id="cat-f-tipo" onchange="aplicarFiltrosCatalogo()">
-            <option value="">Todos</option>
-            <option value="MED">Medicaci&oacute;n</option>
-            <option value="INS">Insumos</option>
-          </select>
-        </div>
         <div class="ped-filtro-grp ped-filtro-grp-grow">
-          <label>Buscar (nombre / c&oacute;digo)</label>
-          <input type="text" id="cat-f-busca" placeholder="Ej: jeringa, 1111..." oninput="aplicarFiltrosCatalogo()"/>
+          <label>Buscar (nombre / c&oacute;digo / subcategor&iacute;a)</label>
+          <input type="text" id="cat-f-busca" placeholder="Ej: jeringa, 1111, descartable..." oninput="aplicarFiltrosCatalogo()"/>
         </div>
         <button class="btn-secondary" onclick="resetFiltrosCatalogo()" style="padding:8px 14px; font-size:11px; align-self:flex-end;">Limpiar</button>
       </div>
@@ -3628,14 +3612,9 @@ async function loadCatalogo() {
 }
 
 function aplicarFiltrosCatalogo() {
-  const estado = (document.getElementById('cat-f-estado')?.value || '').trim();
-  const tipo   = (document.getElementById('cat-f-tipo')?.value || '').trim();
-  const busca  = (document.getElementById('cat-f-busca')?.value || '').trim().toLowerCase();
+  const busca = (document.getElementById('cat-f-busca')?.value || '').trim().toLowerCase();
 
   let filtrados = _catalogoCache;
-  if (estado === 'activo')    filtrados = filtrados.filter(p => p.activo);
-  if (estado === 'inactivo')  filtrados = filtrados.filter(p => !p.activo);
-  if (tipo)                   filtrados = filtrados.filter(p => p.tipo === tipo);
   if (busca) {
     filtrados = filtrados.filter(p =>
       (p.nombre || '').toLowerCase().includes(busca) ||
@@ -3654,9 +3633,8 @@ function aplicarFiltrosCatalogo() {
 }
 
 function resetFiltrosCatalogo() {
-  ['cat-f-estado','cat-f-tipo','cat-f-busca'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  const el = document.getElementById('cat-f-busca');
+  if (el) el.value = '';
   aplicarFiltrosCatalogo();
 }
 
