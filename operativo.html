@@ -1036,8 +1036,8 @@
         <div class="ped-filtro-grp">
           <label>Estado</label>
           <select id="cat-f-estado" onchange="aplicarFiltrosCatalogo()">
-            <option value="">Todos</option>
-            <option value="activo" selected>Solo activos</option>
+            <option value="" selected>Todos</option>
+            <option value="activo">Solo activos</option>
             <option value="inactivo">Solo inactivos</option>
           </select>
         </div>
@@ -3617,8 +3617,8 @@ let _catalogoCache = [];
 
 async function loadCatalogo() {
   try {
-    // Traemos TODOS (activos e inactivos) para que admin pueda reactivar
-    _catalogoCache = await sbQuery('productos', 'select=*&order=activo.desc.nullslast,nombre.asc');
+    // Traemos TODOS (activos e inactivos) ordenados alfabéticamente por nombre
+    _catalogoCache = await sbQuery('productos', 'select=*&order=nombre.asc');
     aplicarFiltrosCatalogo();
   } catch(e) {
     console.error('loadCatalogo error:', e);
@@ -3655,7 +3655,7 @@ function aplicarFiltrosCatalogo() {
 
 function resetFiltrosCatalogo() {
   ['cat-f-estado','cat-f-tipo','cat-f-busca'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = (id === 'cat-f-estado' ? 'activo' : '');
+    const el = document.getElementById(id); if (el) el.value = '';
   });
   aplicarFiltrosCatalogo();
 }
