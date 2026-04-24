@@ -2747,7 +2747,8 @@ async function approvePedido(id) {
       if (needLote) {
         const res = await asignarLotesFEFO(item.producto_id, item.cantidad_solicitada);
         if (!res.ok) {
-          problemas.push(`${prod.nombre}: faltan ${res.faltante} (vigente: ${item.cantidad_solicitada - res.faltante})`);
+          const disponible = item.cantidad_solicitada - res.faltante;
+          problemas.push(`${prod.nombre}: pide ${item.cantidad_solicitada}, disponible no vencido ${disponible} (faltan ${res.faltante})`);
           continue;
         }
         plan.push({ item, prod, asignaciones: res.asignaciones, requiere_lote: true });
@@ -2756,7 +2757,7 @@ async function approvePedido(id) {
         const [st] = await sbQuery('v_stock', `select=stock_actual&id=eq.${item.producto_id}`);
         const disponible = st ? st.stock_actual : 0;
         if (disponible < item.cantidad_solicitada) {
-          problemas.push(`${prod.nombre}: faltan ${item.cantidad_solicitada - disponible} (disponible: ${disponible})`);
+          problemas.push(`${prod.nombre}: pide ${item.cantidad_solicitada}, disponible ${disponible} (faltan ${item.cantidad_solicitada - disponible})`);
           continue;
         }
         plan.push({ item, prod, asignaciones: null, requiere_lote: false });
@@ -3754,34 +3755,59 @@ async function submitPedido() {
 
   if (items.length === 0) { showToast('Agreg\u00e1 al menos un producto con cantidad', 'error'); return; }
 
-  // Validar stock fresco desde v_stock (no confiar en cache)
+  // Validar stock con el MISMO criterio que approvePedido:
+  //   - Productos con requiere_lote=true: usar lotes VIGENTES (FEFO, no cuenta vencidos)
+  //   - Productos sin lote (INS): usar v_stock
+  // Así no se pueden crear pedidos que después fallen al aprobar.
   try {
     const prodIds = items.map(i => i.producto_id);
-    const stockFresco = await sbQuery('v_stock', `select=id,nombre,stock_actual&id=in.(${prodIds.join(',')})`);
-    const stockById = {};
-    stockFresco.forEach(s => { stockById[s.id] = s; });
+    const productosInfo = await sbQuery('productos',
+      `select=id,nombre,requiere_lote&id=in.(${prodIds.join(',')})`);
+    const prodById = {};
+    productosInfo.forEach(p => { prodById[p.id] = p; });
 
-    const overflows = items.filter(it => {
-      const s = stockById[it.producto_id];
-      return s && it.cantidad_solicitada > s.stock_actual;
-    });
+    const overflows = [];
+    for (const it of items) {
+      const p = prodById[it.producto_id];
+      if (!p) continue;
+      if (p.requiere_lote) {
+        // Validar contra lotes vigentes (FEFO)
+        const res = await asignarLotesFEFO(it.producto_id, it.cantidad_solicitada);
+        if (!res.ok) {
+          const disponible = it.cantidad_solicitada - res.faltante;
+          overflows.push({
+            nombre: p.nombre, pide: it.cantidad_solicitada, hay: disponible,
+            motivo: 'lotes vigentes'
+          });
+        }
+      } else {
+        // INS: usar v_stock
+        const [st] = await sbQuery('v_stock', `select=stock_actual&id=eq.${it.producto_id}`);
+        const disponible = st ? st.stock_actual : 0;
+        if (it.cantidad_solicitada > disponible) {
+          overflows.push({
+            nombre: p.nombre, pide: it.cantidad_solicitada, hay: disponible,
+            motivo: 'stock'
+          });
+        }
+      }
+    }
 
     if (overflows.length > 0) {
-      const lineas = overflows.map(it => {
-        const s = stockById[it.producto_id];
-        return `• ${s.nombre}: pide ${it.cantidad_solicitada}, hay ${s.stock_actual}`;
-      }).join('\n');
+      const lineas = overflows.map(o =>
+        `\u2022 ${o.nombre}: pide ${o.pide}, disponible ${o.hay}`
+      ).join('\n');
 
       if (urgencia === 'EMERGENCIA') {
         // En EMERGENCIA permitir, pero confirmar
         const ok = await spcdConfirm(
-          `${overflows.length} producto(s) superan el stock disponible:\n\n${lineas}\n\n\u00bfConfirm\u00e1s igual por ser EMERGENCIA?`,
+          `${overflows.length} producto(s) sin stock suficiente:\n\n${lineas}\n\n\u00bfConfirm\u00e1s igual por ser EMERGENCIA?`,
           { title: 'Atenci\u00f3n \u2014 Emergencia', okText: 'S\u00ed, enviar igual', cancelText: 'Revisar', type: 'alert' }
         );
         if (!ok) return;
       } else {
         await spcdAlert(
-          `${overflows.length} producto(s) superan el stock disponible:\n\n${lineas}\n\nAjust\u00e1 cantidades o cambi\u00e1 urgencia a EMERGENCIA si es cr\u00edtico.`,
+          `No hay stock suficiente en ${overflows.length} producto(s):\n\n${lineas}\n\nPara medicaci\u00f3n el stock cuenta solo los lotes NO VENCIDOS. Ajust\u00e1 cantidades, sac\u00e1 el producto o marc\u00e1 urgencia EMERGENCIA si es cr\u00edtico.`,
           { title: 'No se puede enviar el pedido', type: 'error' }
         );
         return;
