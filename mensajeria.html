@@ -231,6 +231,41 @@
     text-align:center; padding:60px 20px; color:var(--muted);
   }
   .empty-state .em-icon{ font-size:48px; opacity:.4; margin-bottom:14px; }
+
+  /* ─── Bloque "Info" para modal Detalle ─── */
+  .info-block-msj{
+    background:rgba(15,23,42,.5);
+    border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px;
+    margin-bottom:8px;
+  }
+  .info-block-msj .info-row{
+    display:flex; justify-content:space-between; gap:12px;
+    padding:8px 0; font-size:13px;
+  }
+  .info-block-msj .info-row + .info-row{ border-top:1px dashed rgba(59,130,246,.15); }
+  .info-block-msj .info-label{
+    color:var(--muted); letter-spacing:1px;
+    text-transform:uppercase; font-size:10px; flex-shrink:0;
+  }
+  .info-block-msj .info-val{
+    color:var(--text); font-weight:600; text-align:right;
+    word-break:break-word;
+  }
+  .info-block-msj .info-val.highlight{
+    color:var(--cyan); font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700;
+  }
+  .info-block-msj .sobres-list-mini{
+    margin-top:6px; padding-top:6px;
+    border-top:1px dashed rgba(59,130,246,.15);
+    font-size:12px; color:var(--muted);
+  }
+  .info-block-msj .sobre-mini{ display:flex; justify-content:space-between; padding:3px 0; }
+  .info-block-msj .obs-block{
+    margin-top:10px; padding:10px 12px;
+    background:rgba(34,219,174,.05); border:1px solid rgba(34,219,174,.2);
+    border-radius:8px; font-size:12px; color:var(--text); white-space:pre-wrap;
+  }
 </style>
 </head>
 <body>
@@ -390,7 +425,22 @@
 
     <div class="modal-actions">
       <button class="btn-ghost" onclick="cerrarOverlay('ov-nuevo')">Cancelar</button>
-      <button class="btn-primary" onclick="crearRetiro()">Crear y Generar QR</button>
+      <button class="btn-primary" onclick="crearRetiro()">Crear retiro</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL: DETALLE del retiro (estilizado, reemplaza alert)
+═════════════════════════════════════════════════════════════════ -->
+<div class="msj-overlay" id="ov-detalle">
+  <div class="msj-modal" onclick="event.stopPropagation()">
+    <h3>Detalle del retiro</h3>
+    <div class="msj-modal-sub" id="det-fecha"></div>
+    <div class="info-block-msj" id="det-content"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="cerrarOverlay('ov-detalle')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -615,7 +665,7 @@ function renderTabla(){
       <td><span class="badge ${est.cls}">${est.txt}</span></td>
       <td style="font-size:11px; color:var(--muted)">${fmtFechaHora(r.firmado_at)}</td>
       <td>
-        ${r.estado === 'PENDIENTE_FIRMA' ? `<button class="btn-ghost" onclick="reabrirQR('${r.id}','${r.qr_token}')">Ver QR</button>` : ''}
+        ${r.estado === 'PENDIENTE_FIRMA' ? `<button class="btn-primary" style="padding:5px 12px; font-size:11px;" onclick="generarQR('${r.id}')">📱 Generar QR</button>` : ''}
         <button class="btn-ghost" onclick="verDetalle('${r.id}')">Detalle</button>
       </td>
     </tr>`;
@@ -797,10 +847,31 @@ async function crearRetiro(){
     cerrarOverlay('ov-nuevo');
     await loadRetiros();
     applyFiltrosAndRender();
-    mostrarQR(retiro);
+    // No mostramos el QR ahora — queda PENDIENTE_FIRMA listo en la tabla.
+    // Cuando llegue el mensajero, el encargado aprieta "Generar QR" en la fila.
+    toastOk('Retiro creado. Cuando llegue el mensajero, apretá "Generar QR" en la fila.');
   } catch(err){
     alert('Error al crear retiro: ' + err.message);
   }
+}
+
+// ─── Toast simple (mensaje no bloqueante arriba) ───
+function toastOk(texto){
+  let t = document.getElementById('msj-toast');
+  if (!t){
+    t = document.createElement('div');
+    t.id = 'msj-toast';
+    t.style.cssText = 'position:fixed; top:74px; left:50%; transform:translateX(-50%); z-index:99995; '+
+      'background:rgba(34,219,174,.15); border:1px solid rgba(34,219,174,.5); color:var(--cyan); '+
+      'padding:12px 22px; border-radius:10px; font-size:13px; max-width:90vw; '+
+      'backdrop-filter:blur(8px); box-shadow:0 10px 30px rgba(0,0,0,.3); '+
+      'opacity:0; transition:opacity .25s; pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = texto;
+  t.style.opacity = '1';
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.style.opacity = '0'; }, 4500);
 }
 
 // ═════════════════ QR ═════════════════
@@ -834,13 +905,40 @@ function mostrarQR(retiro){
   startQRPolling(retiro.id);
 }
 
-function reabrirQR(retiroId, token){
+// ─── Generar / regenerar QR para un retiro pendiente ───
+// Genera SIEMPRE token y expiración nuevos. De esta forma, Santiago puede crear
+// el retiro con anticipación y, cuando llegue el mensajero, apretar este botón
+// para mostrar un QR fresco con 5 minutos de validez.
+async function generarQR(retiroId){
   const r = retiros.find(x => x.id === retiroId);
   if (!r) return;
-  if (new Date(r.qr_expires_at) < new Date()){
-    alert('Este QR ya expiró. Si el mensajero está presente, podés usar firma asistida desde el detalle.');
+  if (r.estado !== 'PENDIENTE_FIRMA'){
+    alert('Solo se puede regenerar QR de retiros en estado "Pendiente firma".');
+    return;
   }
-  mostrarQR(r);
+  try {
+    const newToken   = (crypto.randomUUID && crypto.randomUUID()) || generarUUID();
+    const newExpires = new Date(Date.now() + 5*60*1000).toISOString();
+    const upd = await sbUpdate('mensajeria_retiros', retiroId, {
+      qr_token: newToken,
+      qr_expires_at: newExpires
+    });
+    const retiroActualizado = (upd && upd[0]) ? upd[0] : { ...r, qr_token: newToken, qr_expires_at: newExpires };
+    // Actualizar caché local
+    Object.assign(r, retiroActualizado);
+    mostrarQR(retiroActualizado);
+    applyFiltrosAndRender();
+  } catch(e){
+    alert('Error al generar QR: ' + e.message);
+  }
+}
+
+// Fallback para crypto.randomUUID en navegadores viejos
+function generarUUID(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
 }
 
 function startQRCountdown(expiresAt){
@@ -915,28 +1013,55 @@ async function firmarAsistida(){
   }
 }
 
-// ═════════════════ DETALLE ═════════════════
+// ═════════════════ DETALLE (modal estilizado) ═════════════════
+
+// Configuración de qué campos mostrar según destino (espejo de mensajeria-firmar.html)
+function configDetalleDestino(nombreDestino){
+  const n = (nombreDestino || '').toLowerCase().trim();
+  if (n === 'facturación' || n === 'facturacion') return { cajas:true,  sobres:false, monto:false };
+  if (n === 'tesorería'   || n === 'tesoreria')   return { cajas:false, sobres:true,  monto:true  };
+  return { cajas:false, sobres:false, monto:false };
+}
+
 async function verDetalle(retiroId){
   const r = retiros.find(x => x.id === retiroId);
   if (!r) return;
   const m = mensajeros.find(x => x.id === r.mensajero_id);
   const d = destinos.find(x => x.id === r.destino_id);
   const sobres = await loadSobresPara(retiroId);
-  const sobresHtml = sobres.length
-    ? sobres.map(s => `<li>N° ${s.numero_cajera} — ${fmtARS(s.monto)}</li>`).join('')
-    : '<li>(sin sobres)</li>';
-  const txt =
-    `Fecha: ${fmtFechaHora(r.fecha_hora)}\n` +
-    `Mensajero: ${m?m.nombre:'—'}\n` +
-    `Destino: ${d?d.nombre:'—'}\n` +
-    `Cajas: ${r.cant_cajas}\n` +
-    `Sobres: ${r.cant_sobres} (${fmtARS(r.monto_total)})\n` +
-    `${sobres.map(s => `  • N° ${s.numero_cajera}: ${fmtARS(s.monto)}`).join('\n')}\n` +
-    `Estado: ${r.estado}\n` +
-    `Firmado: ${fmtFechaHora(r.firmado_at)}\n` +
-    `Encargado de entrega: ${r.encargado_nombre}\n` +
-    `Observaciones: ${r.observaciones || '—'}`;
-  alert(txt);
+
+  const cfg = configDetalleDestino(d ? d.nombre : '');
+  const est = ESTADO_LABEL[r.estado] || {txt:r.estado, cls:'badge-pendiente'};
+
+  document.getElementById('det-fecha').textContent = fmtFechaHora(r.fecha_hora);
+
+  const cajasRow  = cfg.cajas
+    ? `<div class="info-row"><span class="info-label">Cajas</span><span class="info-val" style="color:var(--cyan);">${r.cant_cajas}</span></div>` : '';
+  const sobresRow = cfg.sobres
+    ? `<div class="info-row"><span class="info-label">Sobres</span><span class="info-val" style="color:var(--cyan);">${r.cant_sobres}</span></div>` : '';
+  const montoRow  = cfg.monto
+    ? `<div class="info-row"><span class="info-label">Monto total</span><span class="info-val highlight">${fmtARS(r.monto_total)}</span></div>` : '';
+  const sobresList = (cfg.sobres && sobres.length)
+    ? `<div class="sobres-list-mini">
+        ${sobres.map((s,i) => `<div class="sobre-mini"><span>${s.numero_cajera || ('Sobre '+(i+1))}</span><span>${fmtARS(s.monto)}</span></div>`).join('')}
+      </div>` : '';
+  const obsBlock = r.observaciones
+    ? `<div class="obs-block">${r.observaciones.replace(/</g,'&lt;')}</div>` : '';
+
+  document.getElementById('det-content').innerHTML = `
+    <div class="info-row"><span class="info-label">Mensajero</span><span class="info-val">${m ? m.nombre : '—'}</span></div>
+    <div class="info-row"><span class="info-label">Destino</span><span class="info-val">${d ? d.nombre : '—'}</span></div>
+    <div class="info-row"><span class="info-label">Encargado de entrega</span><span class="info-val">${r.encargado_nombre || '—'}</span></div>
+    <div class="info-row"><span class="info-label">Estado</span><span class="info-val"><span class="badge ${est.cls}">${est.txt}</span></span></div>
+    ${cajasRow}
+    ${sobresRow}
+    ${montoRow}
+    ${sobresList}
+    <div class="info-row"><span class="info-label">Firmado</span><span class="info-val" style="font-size:12px;">${fmtFechaHora(r.firmado_at)}</span></div>
+    ${obsBlock}
+  `;
+
+  abrirOverlay('ov-detalle');
 }
 
 // ═════════════════ MENSAJEROS (gestión) ═════════════════
