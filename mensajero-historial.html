@@ -230,7 +230,7 @@ function renderHistorial(retiros){
           <div class="retiro-row"><span>Sobres</span><span>${r.cant_sobres}</span></div>
           <div class="retiro-row"><span>Monto</span><span class="retiro-monto">${fmtARS(r.monto_total)}</span></div>
           ${r.firmado_at ? `<div class="retiro-row"><span>Firmado</span><span style="font-size:11px; color:#94A3B8;">${fmtFechaHora(r.firmado_at)}</span></div>` : ''}
-          <div class="retiro-row"><span>Encargado</span><span style="font-size:11px;">${r.encargado || '—'}</span></div>
+          <div class="retiro-row"><span>Encargado de entrega</span><span style="font-size:11px;">${r.encargado || '—'}</span></div>
         </div>`;
       }).join('')
     : `<div class="empty"><div class="ico">📭</div>Todavía no tenés retiros registrados</div>`;

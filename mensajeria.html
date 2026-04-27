@@ -762,7 +762,22 @@ async function crearRetiro(){
   }
 
   const expiresAt = new Date(Date.now() + 5*60*1000).toISOString();
-  const encNombre = (localStorage.getItem('spcd_user_nombre') || localStorage.getItem('spcd_session') || 'Encargado').slice(0,80);
+
+  // Extraer nombre del encargado de la sesión (parseando el JSON si hace falta)
+  let encNombre = 'Encargado';
+  try {
+    const sess = localStorage.getItem('spcd_session');
+    if (sess){
+      const obj = JSON.parse(sess);
+      encNombre = (obj && obj.user && (obj.user.username || obj.user.nombre)) ||
+                  obj?.username || obj?.nombre || encNombre;
+    } else if (localStorage.getItem('spcd_user_nombre')) {
+      encNombre = localStorage.getItem('spcd_user_nombre');
+    }
+  } catch(e){
+    encNombre = localStorage.getItem('spcd_user_nombre') || 'Encargado';
+  }
+  encNombre = String(encNombre).slice(0,80);
 
   try {
     const ins = await sbInsert('mensajeria_retiros', {
@@ -919,7 +934,7 @@ async function verDetalle(retiroId){
     `${sobres.map(s => `  • N° ${s.numero_cajera}: ${fmtARS(s.monto)}`).join('\n')}\n` +
     `Estado: ${r.estado}\n` +
     `Firmado: ${fmtFechaHora(r.firmado_at)}\n` +
-    `Encargado: ${r.encargado_nombre}\n` +
+    `Encargado de entrega: ${r.encargado_nombre}\n` +
     `Observaciones: ${r.observaciones || '—'}`;
   alert(txt);
 }

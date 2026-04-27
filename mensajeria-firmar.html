@@ -233,22 +233,50 @@ function renderFormulario(d){
   iniciarCountdown(new Date(d.expires_at));
 }
 
+// Configuración de qué campos mostrar según destino (espejo de mensajeria.html)
+function configCamposDestino(nombreDestino){
+  const n = (nombreDestino || '').toLowerCase().trim();
+  if (n === 'facturación' || n === 'facturacion') return { cajas:true,  sobres:false, monto:false };
+  if (n === 'tesorería'   || n === 'tesoreria')   return { cajas:false, sobres:true,  monto:true  };
+  // Otros (catch-all): solo observaciones
+  return { cajas:false, sobres:false, monto:false };
+}
+
 function renderInfoBlock(d, soloLectura){
-  const sobresHtml = (d.sobres || []).length
+  const cfg = configCamposDestino(d.destino_nombre);
+
+  const cajasRow = cfg.cajas
+    ? `<div class="info-row"><span class="info-label">Cajas</span><span class="info-val">${d.cant_cajas}</span></div>`
+    : '';
+
+  const sobresRow = cfg.sobres
+    ? `<div class="info-row"><span class="info-label">Sobres</span><span class="info-val">${d.cant_sobres}</span></div>`
+    : '';
+
+  const montoRow = cfg.monto
+    ? `<div class="info-row"><span class="info-label">Monto total</span><span class="info-val highlight">${fmtARS(d.monto_total)}</span></div>`
+    : '';
+
+  const sobresList = (cfg.sobres && (d.sobres || []).length)
     ? `<div class="sobres-list">
-        ${(d.sobres || []).map(s => `<div class="sobre-item"><span>N° ${s.numero_cajera}</span><span>${fmtARS(s.monto)}</span></div>`).join('')}
+        ${(d.sobres || []).map((s,i) => `<div class="sobre-item"><span>${s.numero_cajera || ('Sobre ' + (i+1))}</span><span>${fmtARS(s.monto)}</span></div>`).join('')}
       </div>`
     : '';
+
+  const obsRow = d.observaciones
+    ? `<div class="info-row"><span class="info-label">Observaciones</span><span class="info-val" style="font-size:12px;">${d.observaciones}</span></div>`
+    : '';
+
   return `
     <div class="info-block">
       <div class="info-row"><span class="info-label">Mensajero</span><span class="info-val">${d.mensajero_nombre}</span></div>
       <div class="info-row"><span class="info-label">Destino</span><span class="info-val">${d.destino_nombre}</span></div>
-      <div class="info-row"><span class="info-label">Encargado</span><span class="info-val">${d.encargado_nombre}</span></div>
-      <div class="info-row"><span class="info-label">Cajas</span><span class="info-val">${d.cant_cajas}</span></div>
-      <div class="info-row"><span class="info-label">Sobres</span><span class="info-val">${d.cant_sobres}</span></div>
-      <div class="info-row"><span class="info-label">Monto total</span><span class="info-val highlight">${fmtARS(d.monto_total)}</span></div>
-      ${sobresHtml}
-      ${d.observaciones ? `<div class="info-row"><span class="info-label">Obs.</span><span class="info-val" style="font-size:12px;">${d.observaciones}</span></div>` : ''}
+      <div class="info-row"><span class="info-label">Encargado de entrega</span><span class="info-val">${d.encargado_nombre}</span></div>
+      ${cajasRow}
+      ${sobresRow}
+      ${montoRow}
+      ${sobresList}
+      ${obsRow}
     </div>
   `;
 }
