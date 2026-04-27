@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="spcd-components.css"/>
   <link rel="stylesheet" href="spcd-dialog.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root {
     --sky:#38BDF8; --amber:#F59E0B; --red:#EF4444;
@@ -374,9 +374,9 @@
       </div>
     </div>
 
-    <!-- Bloque de Sobres (solo Tesorería / Otros) -->
+    <!-- Bloque de Sobres (solo Tesorería) -->
     <div class="form-field" id="field-sobres-wrap" style="display:none;">
-      <label>Sobres de dinero (número escrito por cajera + monto en ARS)</label>
+      <label>Sobres de dinero retirados (monto en ARS)</label>
       <div class="sobres-list" id="sobres-list"></div>
       <button class="sobre-add" onclick="addSobre()">+ Agregar sobre</button>
       <div class="sobres-total"><span>Total sobres:</span><span id="sobres-total-val">$0</span></div>
@@ -405,7 +405,7 @@
     <div class="msj-modal-sub" id="qr-sub">Pediále al mensajero que escanee el QR con su celular</div>
 
     <div class="qr-stage" id="qr-stage-pending">
-      <div class="qr-canvas-wrap"><canvas id="qr-canvas"></canvas></div>
+      <div class="qr-canvas-wrap" id="qr-target"></div>
       <div>
         <div class="qr-counter" id="qr-counter">5:00</div>
         <div class="qr-status-line">El QR expira automáticamente en 5 minutos</div>
@@ -630,9 +630,8 @@ function configCamposDestino(nombreDestino){
   // mostrarCajas, mostrarSobres, obsRequerida
   if (n === 'facturación' || n === 'facturacion') return { cajas:true,  sobres:false, obsReq:false };
   if (n === 'tesorería'   || n === 'tesoreria')   return { cajas:false, sobres:true,  obsReq:false };
-  if (n === 'informática' || n === 'informatica') return { cajas:false, sobres:false, obsReq:true  };
-  // Otros (o cualquier nombre desconocido): mostrar todo, obs opcional
-  return { cajas:true, sobres:true, obsReq:false };
+  // Otros (catch-all, antes Informática): solo observaciones, OBLIGATORIAS
+  return { cajas:false, sobres:false, obsReq:true };
 }
 
 function actualizarCamposPorDestino(){
@@ -673,7 +672,7 @@ function actualizarCamposPorDestino(){
   wObs.style.display = '';
   obsMark.style.display = cfg.obsReq ? '' : 'none';
   obsTa.placeholder = cfg.obsReq
-    ? 'Describí el motivo del envío a Informática (obligatorio)'
+    ? 'Describí el motivo / contenido del retiro (obligatorio)'
     : 'Cualquier dato adicional...';
 }
 
@@ -702,18 +701,21 @@ let sobreCounter = 0;
 function addSobre(){
   sobreCounter++;
   const id = 's' + sobreCounter;
+  const num = document.querySelectorAll('.sobre-row').length + 1;
   const html = `<div class="sobre-row" id="${id}">
-    <div class="form-field" style="width:140px;">
-      <label>N° cajera</label>
-      <input class="sobre-num" type="text" placeholder="ej: 1234" oninput="recalcSobres()"/>
-    </div>
     <div class="form-field" style="flex:1;">
-      <label>Monto (ARS)</label>
+      <label>Sobre #${num} — Monto (ARS)</label>
       <input class="sobre-monto" type="number" min="0" step="0.01" placeholder="0" oninput="recalcSobres()"/>
     </div>
-    <button class="sobre-del" onclick="document.getElementById('${id}').remove(); recalcSobres()">×</button>
+    <button class="sobre-del" onclick="document.getElementById('${id}').remove(); renumerarSobres(); recalcSobres()">×</button>
   </div>`;
   document.getElementById('sobres-list').insertAdjacentHTML('beforeend', html);
+}
+function renumerarSobres(){
+  document.querySelectorAll('.sobre-row').forEach((row, idx) => {
+    const lab = row.querySelector('label');
+    if (lab) lab.textContent = `Sobre #${idx+1} — Monto (ARS)`;
+  });
 }
 function recalcSobres(){
   let total = 0;
@@ -723,9 +725,8 @@ function recalcSobres(){
 function recolectarSobres(){
   const out = [];
   document.querySelectorAll('.sobre-row').forEach((row, idx) => {
-    const num = row.querySelector('.sobre-num').value.trim();
-    const mn  = Number(row.querySelector('.sobre-monto').value || 0);
-    if (num || mn > 0) out.push({numero_cajera: num || '(sin nro)', monto: mn, orden: idx});
+    const mn = Number(row.querySelector('.sobre-monto').value || 0);
+    if (mn > 0) out.push({numero_cajera: 'Sobre ' + (idx+1), monto: mn, orden: idx});
   });
   return out;
 }
@@ -799,8 +800,19 @@ function mostrarQR(retiro){
   const url = FIRMAR_URL_BASE + '?token=' + retiro.qr_token;
   document.getElementById('qr-link').textContent = url;
 
-  const canvas = document.getElementById('qr-canvas');
-  QRCode.toCanvas(canvas, url, { width: 280, margin: 2, color:{ dark:'#0F172A', light:'#FFFFFF' } });
+  const target = document.getElementById('qr-target');
+  target.innerHTML = '';
+  try {
+    new QRCode(target, {
+      text: url,
+      width: 280, height: 280,
+      colorDark: '#0F172A', colorLight: '#FFFFFF',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e){
+    console.error('QR error:', e);
+    target.innerHTML = `<div style="padding:30px;color:#0F172A;font-size:11px;">No se pudo generar QR.<br>Link directo:<br><a href="${url}" target="_blank" style="word-break:break-all;color:#0F172A;text-decoration:underline;">${url}</a></div>`;
+  }
 
   abrirOverlay('ov-qr');
   startQRCountdown(new Date(retiro.qr_expires_at));
