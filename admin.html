@@ -174,14 +174,24 @@
     .kpi-card:hover .kpi-hint { opacity:.7; }
 
     /* ── MODAL DRAWER ── */
+    /* IMPORTANTE: spcd-components.css define .modal-overlay { display:none }
+       y usa .active en lugar de .open. Como acá usamos .open, forzamos display
+       y visibilidad con !important para ganar la cascada. */
     .modal-overlay {
-      position:fixed; inset:0; z-index:200;
+      position:fixed !important; inset:0 !important; z-index:99990 !important;
       background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
       opacity:0; pointer-events:none; transition:opacity .3s;
+      display:block !important;
+      padding:0 !important;
     }
-    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal-overlay.open {
+      opacity:1 !important;
+      pointer-events:all !important;
+      visibility:visible !important;
+      display:block !important;
+    }
     .modal-drawer {
-      position:fixed; top:0; right:0; bottom:0; z-index:201;
+      position:fixed !important; top:0 !important; right:0 !important; bottom:0 !important; z-index:99991 !important;
       width:min(920px,96vw);
       background:#0b1321;
       border-left:1px solid var(--border);
@@ -190,7 +200,11 @@
       transition:transform .35s cubic-bezier(.4,0,.2,1);
       box-shadow:-8px 0 40px rgba(0,0,0,.6);
     }
-    .modal-overlay.open .modal-drawer { transform:translateX(0); }
+    .modal-overlay.open .modal-drawer {
+      transform:translateX(0) !important;
+      visibility:visible !important;
+      opacity:1 !important;
+    }
     .modal-head {
       padding:16px 22px; border-bottom:1px solid var(--border);
       display:flex; align-items:center; gap:14px; flex-shrink:0;
@@ -781,6 +795,35 @@ let charts   = {};
    INIT
 ══════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
+  // ── RECUPERACIÓN: si un modal falló antes y dejó la página bloqueada,
+  // limpiar overflow del body y cerrar overlays huérfanos al cargar.
+  document.body.style.overflow = '';
+  try { document.getElementById('modal-overlay').classList.remove('open'); } catch(e){}
+  try { document.getElementById('export-menu').classList.remove('open'); } catch(e){}
+
+  // Capturar errores globales para que nunca dejen la página bloqueada.
+  window.addEventListener('error', (ev) => {
+    console.error('[GLOBAL ERROR]', ev.message, 'en', ev.filename, ':', ev.lineno, ev.error);
+    document.body.style.overflow = '';
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    console.error('[UNHANDLED REJECTION]', ev.reason);
+    document.body.style.overflow = '';
+  });
+
+  // WATCHDOG: cada 500ms verifica que no estemos en estado fantasma
+  // (body bloqueado pero sin modal visible). Si lo detecta, libera.
+  setInterval(() => {
+    const ov = document.getElementById('modal-overlay');
+    if (!ov) return;
+    if (document.body.style.overflow === 'hidden' && !ov.classList.contains('open')) {
+      console.warn('[WATCHDOG] Estado fantasma detectado: body bloqueado sin modal abierto. Liberando.');
+      document.body.style.overflow = '';
+    }
+  }, 500);
+
+  console.log('%c[SP·CD ADMIN] versión fix-modal-2026-04-27', 'color:#22DBAE;font-weight:700');
+
   const sede = localStorage.getItem('spcd_sede') || '';
   document.getElementById('bc-sede').textContent  = sede || 'Sede';
   document.getElementById('top-sede').textContent = sede || '—';
@@ -2307,23 +2350,42 @@ const MODAL_LABELS = {
   sumderiv:      'Turnos por Derivante'
 };
 
-function openModal(tipo) {
-  if (!filtered.length) return;
+// Helper: convierte cualquier valor (string, número, Date, null, undefined) a string seguro
+function _safe(v) { return String(v == null ? '' : v).trim(); }
 
+function openModal(tipo) {
+  if (!filtered.length) {
+    console.warn('[openModal] No hay datos filtrados.');
+    return;
+  }
+  try {
+    _openModalInternal(tipo);
+  } catch (err) {
+    console.error('[openModal] Error al abrir modal:', err);
+    try { document.getElementById('modal-overlay').classList.remove('open'); } catch(e){}
+    try { document.getElementById('export-menu').classList.remove('open'); } catch(e){}
+    document.body.style.overflow = '';
+    alert('No se pudo abrir el detalle.\n\nMotivo: ' + (err && err.message ? err.message : err) +
+          '\n\nProbable causa: el Excel cargado tiene una columna con formato inesperado. ' +
+          'Probá descargar el Excel original y volver a cargarlo desde Inicio.');
+  }
+}
+
+function _openModalInternal(tipo) {
   // Seleccionar registros según el tipo de KPI
   switch (tipo) {
     case 'instderiv':    modalRows = filtered.filter(r => esErrorInstDerivante(r)); break;
-    case 'derivantes':   modalRows = filtered.filter(r => { const d=(r['Derivante']||'').trim().toUpperCase(); return !d || d==='A CONFIRMAR'; }); break;
-    case 'coseguros':    modalRows = filtered.filter(r => { const id=String(r['ID Aseguradora']||'').trim(); const cu=(r['Cuenta']||'').trim().toUpperCase(); const pr=(r['Prestación']||r['Prestacion']||'').trim().toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; }); break;
-    case 'aseguradoras': modalRows = filtered.filter(r => r['Aseguradora'] && r['Aseguradora'] !== ''); break;
+    case 'derivantes':   modalRows = filtered.filter(r => { const d=_safe(r['Derivante']).toUpperCase(); return !d || d==='A CONFIRMAR'; }); break;
+    case 'coseguros':    modalRows = filtered.filter(r => { const id=_safe(r['ID Aseguradora']); const cu=_safe(r['Cuenta']).toUpperCase(); const pr=_safe(r['Prestación']||r['Prestacion']).toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; }); break;
+    case 'aseguradoras': modalRows = filtered.filter(r => _safe(r['Aseguradora']) !== ''); break;
     case 'sinreferencia':modalRows = filtered.filter(r => esErrorReferencia(r)); break;
     case 'cobertura':   modalRows = filtered.filter(r => esErrorCobertura(r)); break;
     case 'fuerafecha':  modalRows = filtered.filter(r => esErrorFueraFechaFact(r)); break;
     case 'tramites':    modalRows = filtered.filter(r => esErrorTramiteIncompleto(r)); break;
     case 'sumerrores':  modalRows = filtered.filter(r =>
       esErrorInstDerivante(r) ||
-      (()=>{ const d=(r['Derivante']||'').trim().toUpperCase(); return !d || d==='A CONFIRMAR'; })() ||
-      (()=>{ const id=String(r['ID Aseguradora']||'').trim(); const cu=(r['Cuenta']||'').trim().toUpperCase(); const pr=(r['Prestación']||r['Prestacion']||'').trim().toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; })() ||
+      (()=>{ const d=_safe(r['Derivante']).toUpperCase(); return !d || d==='A CONFIRMAR'; })() ||
+      (()=>{ const id=_safe(r['ID Aseguradora']); const cu=_safe(r['Cuenta']).toUpperCase(); const pr=_safe(r['Prestación']||r['Prestacion']).toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; })() ||
       esErrorReferencia(r) ||
       esErrorCobertura(r) ||
       esErrorFueraFechaFact(r) ||
@@ -2333,13 +2395,13 @@ function openModal(tipo) {
     case 'sumpracticas': {
       const noEsPractica = ['MATERIAL','SET DE BOMBA','COSEGURO','RADIOFARMACO','NC/ND','AGUJAS','NOTA'];
       modalRows = filtered.filter(r => {
-        const prest = (r['Prestación']||r['Prestacion']||'').trim().toUpperCase();
+        const prest = _safe(r['Prestación']||r['Prestacion']).toUpperCase();
         return !noEsPractica.some(excl => prest.startsWith(excl));
       }); break;
     }
-    case 'sumcoseg':     modalRows = filtered.filter(r => { const id=String(r['ID Aseguradora']||'').trim(); const cu=(r['Cuenta']||'').trim().toUpperCase(); const pr=(r['Prestación']||r['Prestacion']||'').trim().toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; }); break;
-    case 'sumaseg':      modalRows = filtered.filter(r => r['Aseguradora'] && r['Aseguradora'] !== ''); break;
-    case 'sumderiv':     modalRows = filtered.filter(r => r['Derivante'] && r['Derivante'].trim() !== '' && r['Derivante'].trim().toUpperCase() !== 'A CONFIRMAR'); break;
+    case 'sumcoseg':     modalRows = filtered.filter(r => { const id=_safe(r['ID Aseguradora']); const cu=_safe(r['Cuenta']).toUpperCase(); const pr=_safe(r['Prestación']||r['Prestacion']).toUpperCase(); const ne=parseFloat(r['Neto Unitario']||0); return id==='1665'&&cu.includes('OSEP')&&pr==='COSEGURO'&&ne===0; }); break;
+    case 'sumaseg':      modalRows = filtered.filter(r => _safe(r['Aseguradora']) !== ''); break;
+    case 'sumderiv':     modalRows = filtered.filter(r => { const d=_safe(r['Derivante']).toUpperCase(); return d !== '' && d !== 'A CONFIRMAR'; }); break;
     default:             modalRows = [...filtered];
   }
 
@@ -2364,14 +2426,41 @@ function openModal(tipo) {
   modalFiltered = [...modalRows];
   renderModalTable(modalFiltered);
 
-  document.getElementById('modal-overlay').classList.add('open');
+  // populate menu ANTES de bloquear scroll: si falla, no quedamos trabados
+  try { populateExportMenu(); } catch(e) { console.warn('[populateExportMenu] error (no crítico):', e); }
+
+  // Abrir modal con clase + INLINE STYLES (los inline ganan contra cualquier CSS externo)
+  const ov = document.getElementById('modal-overlay');
+  const dr = document.getElementById('modal-drawer');
+  ov.classList.add('open');
+  ov.style.opacity = '1';
+  ov.style.pointerEvents = 'all';
+  ov.style.visibility = 'visible';
+  ov.style.display = 'block';
+  if (dr) {
+    dr.style.transform = 'translateX(0)';
+    dr.style.opacity = '1';
+    dr.style.visibility = 'visible';
+    dr.style.display = 'flex';
+  }
   document.body.style.overflow = 'hidden';
-  populateExportMenu();
-  setTimeout(() => document.getElementById('modal-search').focus(), 400);
+  setTimeout(() => { try { document.getElementById('modal-search').focus(); } catch(e){} }, 400);
 }
 
 function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
+  const ov = document.getElementById('modal-overlay');
+  const dr = document.getElementById('modal-drawer');
+  ov.classList.remove('open');
+  ov.style.opacity = '';
+  ov.style.pointerEvents = '';
+  ov.style.visibility = '';
+  ov.style.display = '';
+  if (dr) {
+    dr.style.transform = '';
+    dr.style.opacity = '';
+    dr.style.visibility = '';
+    dr.style.display = '';
+  }
   document.getElementById('export-menu').classList.remove('open');
   document.body.style.overflow = '';
 }
