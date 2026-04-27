@@ -2415,6 +2415,19 @@ function _openModalInternal(tipo) {
     return (db || 0) - (da || 0);
   });
 
+  // ── DEDUP por 'Turno N°': si un turno aparece más de una vez, dejar solo la primera ocurrencia.
+  // Aplica a modal y a la exportación Excel (ambos usan modalRows).
+  {
+    const vistos = new Set();
+    modalRows = modalRows.filter(r => {
+      const tn = _safe(r['Turno N°'] ?? r['Turno N'] ?? r['Turno No']);
+      if (!tn) return true; // sin Turno N° → no se puede dedupear, lo dejamos pasar
+      if (vistos.has(tn)) return false;
+      vistos.add(tn);
+      return true;
+    });
+  }
+
   modalTipo  = tipo;
   modalTitle = MODAL_LABELS[tipo] || 'Detalle';
   const color = MODAL_COLORS[tipo] || 'var(--blue)';
