@@ -183,7 +183,6 @@ function renderError(titulo, msj){
   document.getElementById('content').innerHTML = `
     <h2>${titulo}</h2>
     <div class="alert alert-error">${msj}</div>
-    <a class="historial-link" href="mensajero-historial.html">Ver mi historial</a>
   `;
 }
 
@@ -200,7 +199,6 @@ function renderYaFirmado(d){
       </div>
     </div>
     ${renderInfoBlock(d, false)}
-    <a class="historial-link" href="mensajero-historial.html">Ver mi historial completo →</a>
   `;
 }
 
@@ -222,7 +220,6 @@ function renderFormulario(d){
       <button class="btn-firmar" id="btn-firmar" onclick="firmar()">✓ Firmar retiro</button>
     </div>
     <div class="footer-note">Tu firma queda registrada con fecha, hora y dispositivo.</div>
-    <a class="historial-link" href="mensajero-historial.html">Ver mi historial</a>
   `;
 
   // Enter dispara firma
@@ -300,6 +297,9 @@ function iniciarCountdown(expiresAt){
   countdownTimer = setInterval(tick, 1000);
 }
 
+// Guardamos el PIN actual cuando hay que cambiarlo (no se persiste, solo en memoria)
+let pinActualMemo = null;
+
 async function firmar(){
   const pin = document.getElementById('pin').value.trim();
   const msg = document.getElementById('msg-error');
@@ -310,12 +310,20 @@ async function firmar(){
   }
   const btn = document.getElementById('btn-firmar');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Firmando...';
+  btn.innerHTML = '<span class="spinner"></span> Verificando...';
 
   try {
     const res = await sbRpc('firmar_retiro', { p_token: TOKEN, p_pin: pin, p_ip: null });
     if (!res || !res.ok){
       const err = res?.error || 'desconocido';
+
+      // ── Caso especial: el mensajero debe cambiar el PIN antes de firmar ──
+      if (err === 'DEBE_CAMBIAR_PIN'){
+        pinActualMemo = pin; // recordamos el PIN actual para el cambio
+        renderCambioPin();
+        return;
+      }
+
       let mensaje = 'No se pudo firmar.';
       if (err === 'PIN_INCORRECTO') mensaje = 'PIN incorrecto. Intentos restantes: ' + (res.intentos_restantes ?? '?');
       else if (err === 'BLOQUEADO_TEMPORALMENTE') mensaje = 'Tu PIN está bloqueado temporalmente por demasiados intentos. Esperá 5 minutos o pediále al encargado que te lo resetee.';
@@ -329,21 +337,121 @@ async function firmar(){
       return;
     }
     // ÉXITO
-    if (countdownTimer) clearInterval(countdownTimer);
-    document.getElementById('content').innerHTML = `
-      <div class="ok-icon">✓</div>
-      <div class="alert alert-ok">
-        <div style="font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; letter-spacing:3px;">FIRMADO</div>
-        <div style="font-size:12px; margin-top:6px; color:#94A3B8;">El retiro quedó registrado correctamente</div>
-      </div>
-      ${renderInfoBlock(datosRetiro, false)}
-      <a class="historial-link" href="mensajero-historial.html?mid=${datosRetiro.mensajero_id}">Ver mi historial →</a>
-    `;
+    mostrarFirmaOK();
   } catch(e){
     msg.innerHTML = `<div class="alert alert-error">Error de conexión: ${e.message}</div>`;
     btn.disabled = false;
     btn.innerHTML = '✓ Firmar retiro';
   }
+}
+
+// ─── Pantalla de cambio de PIN obligatorio (primera firma) ───
+function renderCambioPin(){
+  document.getElementById('content').innerHTML = `
+    <h2>Primera vez — Cambiá tu PIN</h2>
+    <div class="countdown" id="cd"></div>
+    <div class="alert alert-info" style="background:rgba(56,189,248,.1); border:1px solid rgba(56,189,248,.4); color:#38BDF8;">
+      🔒 Antes de poder firmar, tenés que reemplazar el PIN inicial <b>1234</b> por uno personal de 4 a 6 dígitos. Es solo una vez.
+    </div>
+
+    <div class="info-block" style="margin-bottom:18px;">
+      <div class="info-row"><span class="info-label">Mensajero</span><span class="info-val">${datosRetiro.mensajero_nombre}</span></div>
+      <div class="info-row"><span class="info-label">Destino</span><span class="info-val">${datosRetiro.destino_nombre}</span></div>
+    </div>
+
+    <div class="pin-block">
+      <label>Nuevo PIN (4 a 6 dígitos)</label>
+      <input class="pin-input" id="pin-nuevo" type="password" maxlength="6" inputmode="numeric" autocomplete="off" placeholder="••••" autofocus/>
+    </div>
+    <div class="pin-block" style="margin-top:14px;">
+      <label>Repetí el nuevo PIN</label>
+      <input class="pin-input" id="pin-confirmar" type="password" maxlength="6" inputmode="numeric" autocomplete="off" placeholder="••••"/>
+    </div>
+
+    <div id="msg-cp"></div>
+    <button class="btn-firmar" id="btn-cp" onclick="confirmarCambioYFirmar()">✓ Cambiar PIN y Firmar Retiro</button>
+    <div class="footer-note">Tu nuevo PIN va a quedar guardado para todas las futuras firmas.</div>
+  `;
+  iniciarCountdown(new Date(datosRetiro.expires_at));
+
+  // Enter en el segundo input dispara la acción
+  document.getElementById('pin-confirmar').addEventListener('keypress', e => {
+    if (e.key === 'Enter') confirmarCambioYFirmar();
+  });
+}
+
+async function confirmarCambioYFirmar(){
+  const nuevo = document.getElementById('pin-nuevo').value.trim();
+  const conf  = document.getElementById('pin-confirmar').value.trim();
+  const msg   = document.getElementById('msg-cp');
+  msg.innerHTML = '';
+
+  if (nuevo.length < 4 || nuevo.length > 6){
+    msg.innerHTML = '<div class="alert alert-error">El nuevo PIN debe tener entre 4 y 6 dígitos.</div>'; return;
+  }
+  if (!/^[0-9]+$/.test(nuevo)){
+    msg.innerHTML = '<div class="alert alert-error">El PIN solo puede tener números.</div>'; return;
+  }
+  if (nuevo === '1234'){
+    msg.innerHTML = '<div class="alert alert-error">No podés usar 1234 como nuevo PIN. Elegí uno distinto.</div>'; return;
+  }
+  if (nuevo !== conf){
+    msg.innerHTML = '<div class="alert alert-error">Los PINs no coinciden. Volvé a intentarlo.</div>'; return;
+  }
+  if (!pinActualMemo){
+    msg.innerHTML = '<div class="alert alert-error">Sesión perdida — recargá la página.</div>'; return;
+  }
+
+  const btn = document.getElementById('btn-cp');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Procesando...';
+
+  try {
+    const res = await sbRpc('cambiar_pin_y_firmar', {
+      p_token: TOKEN,
+      p_pin_actual: pinActualMemo,
+      p_pin_nuevo:  nuevo,
+      p_ip: null
+    });
+    if (!res || !res.ok){
+      const err = res?.error || 'desconocido';
+      let m = 'No se pudo procesar.';
+      if (err === 'PIN_INCORRECTO') m = 'El PIN inicial no es correcto.';
+      else if (err === 'PIN_NUEVO_IGUAL_AL_ACTUAL') m = 'El nuevo PIN no puede ser igual al actual.';
+      else if (err === 'PIN_NUEVO_NO_PERMITIDO') m = res.detalle || 'No podés usar ese PIN.';
+      else if (err === 'PIN_NUEVO_INVALIDO') m = res.detalle || 'PIN nuevo inválido.';
+      else if (err === 'BLOQUEADO_TEMPORALMENTE') m = 'Bloqueado por demasiados intentos. Esperá 5 minutos.';
+      else if (err === 'EXPIRADO') m = 'El QR expiró. Pediále uno nuevo al encargado.';
+      else if (err === 'YA_PROCESADO') m = 'Este retiro ya fue procesado.';
+      else m = 'Error: ' + err;
+      msg.innerHTML = `<div class="alert alert-error">${m}</div>`;
+      btn.disabled = false;
+      btn.innerHTML = '✓ Cambiar PIN y Firmar Retiro';
+      return;
+    }
+    pinActualMemo = null;
+    mostrarFirmaOK(true);
+  } catch(e){
+    msg.innerHTML = `<div class="alert alert-error">Error de conexión: ${e.message}</div>`;
+    btn.disabled = false;
+    btn.innerHTML = '✓ Cambiar PIN y Firmar Retiro';
+  }
+}
+
+function mostrarFirmaOK(pinFueCambiado){
+  if (countdownTimer) clearInterval(countdownTimer);
+  const banner = pinFueCambiado
+    ? `<div class="alert alert-info" style="margin-bottom:10px;">🔒 PIN actualizado. Recordalo para tus próximas firmas.</div>`
+    : '';
+  document.getElementById('content').innerHTML = `
+    <div class="ok-icon">✓</div>
+    <div class="alert alert-ok">
+      <div style="font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; letter-spacing:3px;">FIRMADO</div>
+      <div style="font-size:12px; margin-top:6px; color:#94A3B8;">El retiro quedó registrado correctamente</div>
+    </div>
+    ${banner}
+    ${renderInfoBlock(datosRetiro, false)}
+  `;
 }
 </script>
 </body>
