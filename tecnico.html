@@ -1995,114 +1995,82 @@ function deduplicarPorTurno(rows) {
 
 async function exportExcel(share) {
   if (!modalFiltered.length) return;
+  try {
+    await SpcdExcel.ready();
 
-  const cols = ['Turno Fecha','Turno N°','Paciente','Documento','Prestación','Equipo','Estado','Duración'];
-  const shortH = ['Fecha','T.N°','Paciente','DNI','Prestación','Equipo','Est','Duración'];
-  const colW = [10,6,22,12,28,16,6,10];
-  const sede = localStorage.getItem('spcd_sede') || 'General';
-  const fecha = new Date().toLocaleDateString('es-AR');
-  const dataRows = deduplicarPorTurno(modalFiltered);
+    const cols   = ['Turno Fecha','Turno N°','Paciente','Documento','Prestación','Equipo','Estado','Duración'];
+    const shortH = ['Fecha','T.N°','Paciente','DNI','Prestación','Equipo','Est','Duración'];
+    const colW   = [11,8,24,12,30,18,8,12];
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'SP Control Data';
-  const ws = wb.addWorksheet('Detalle');
+    const dataRows = deduplicarPorTurno(modalFiltered);
 
-  const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0', RED='F87171', SURF='111827', CYAN='22DBAE';
+    /* ─── KPIs técnicos ─── */
+    const totRegs = dataRows.length;
+    const equipos = new Set(dataRows.map(r => r['Equipo']||'—'));
+    const susCount = dataRows.filter(r => r['Estado']==='SUS').length;
+    const presSet = new Set(dataRows.map(r => r['Prestación']||'—'));
 
-  // Logo
-  const logoB64 = generateLogoPNG();
-  const logoId = wb.addImage({base64:logoB64,extension:'png'});
-  ws.addImage(logoId,{tl:{col:0,row:0},ext:{width:220,height:46}});
+    const kpis = [
+      { label:'Estudios',     value: totRegs.toLocaleString('es-AR'), tone:'cyan' },
+      { label:'Equipos',      value: equipos.size,                    tone:'silver' },
+      { label:'Prestaciones', value: presSet.size,                    tone:'emerald' },
+      { label:'Suspendidos',  value: susCount, tone: susCount>0 ? 'rose' : 'cyan' }
+    ];
 
-  // Fila 1: Logo + Título
-  ws.mergeCells(1,3,1,cols.length);
-  const t1 = ws.getCell(1,3);
-  t1.value = 'INFORME TÉCNICO';
-  t1.font = {name:'Calibri',size:14,bold:true,color:{argb:WHITE}};
-  t1.alignment = {horizontal:'center',vertical:'middle'};
-  for(let i=1;i<=cols.length;i++) ws.getCell(1,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-  ws.getRow(1).height = 38;
+    const subtitle = `INFORME TÉCNICO · ${modalTitle.toUpperCase()}`;
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName:'Detalle' });
 
-  // Fila 2: Línea decorativa
-  for(let i=1;i<=cols.length;i++) {
-    const dc = ws.getCell(2,i);
-    dc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    dc.border = {bottom:{style:'medium',color:{argb:BLUE}}};
-  }
-  ws.getRow(2).height = 4;
-
-  // Fila 3: Info
-  ws.mergeCells(3,1,3,cols.length);
-  const t2 = ws.getCell('A3');
-  t2.value = `  Sede: ${sede}   |   ${fecha}   |   ${dataRows.length} registros   |   ${modalTitle.toUpperCase()}`;
-  t2.font = {name:'Calibri',size:9,bold:true,color:{argb:RED}};
-  t2.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
-  t2.alignment = {horizontal:'center',vertical:'middle'};
-  ws.getRow(3).height = 20;
-
-  // Fila 4: Espacio
-  for(let i=1;i<=cols.length;i++) ws.getCell(4,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-  ws.getRow(4).height = 4;
-
-  // Fila 5: Headers
-  const hr = ws.getRow(5);
-  shortH.forEach((h,i) => {
-    const cell = hr.getCell(i+1);
-    cell.value = h;
-    cell.font = {name:'Calibri',size:8,bold:true,color:{argb:WHITE}};
-    cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
-    cell.alignment = {horizontal:'center',vertical:'middle'};
-    cell.border = {bottom:{style:'thin',color:{argb:CYAN}},top:{style:'thin',color:{argb:BLUE}}};
-  });
-  hr.height = 18;
-  colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
-
-  // Datos
-  const thinB = {style:'hair',color:{argb:'334155'}};
-  const borderStyle = {bottom:thinB,left:{style:'hair',color:{argb:'1E293B'}},right:{style:'hair',color:{argb:'1E293B'}}};
-  dataRows.forEach((r,idx) => {
-    const row = ws.getRow(6+idx);
-    const bg = idx%2===0 ? SURF : '1A2332';
-    cols.forEach((c,i) => {
-      const cell = row.getCell(i+1);
-      cell.value = r[c] ?? '';
-      cell.font = {name:'Calibri',size:8,color:{argb:c==='Estado'&&r[c]==='SUS'?RED:WHITE}};
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-      cell.border = borderStyle;
-      cell.alignment = {vertical:'middle',shrinkToFit:true};
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle,
+      totalCols: cols.length,
+      meta:{
+        modulo:'TECNICO',
+        sede: SpcdExcel.getCurrentSede(),
+        usuario: SpcdExcel.getCurrentUser(),
+        registros: totRegs
+      }
     });
-    row.height = 14;
-  });
 
-  // Fila final: cierre
-  const lastRow = ws.getRow(6+dataRows.length);
-  for(let i=1;i<=cols.length;i++) {
-    const fc = lastRow.getCell(i);
-    fc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    fc.border = {top:{style:'thin',color:{argb:BLUE}}};
-  }
-  ws.mergeCells(6+dataRows.length,1,6+dataRows.length,cols.length);
-  lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
-  lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
-  lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
-  lastRow.height = 16;
+    const k = SpcdExcel.buildKPIs(ws, kpis, { startRow:h.nextRow, totalCols:cols.length });
+    const s = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:`DETALLE TÉCNICO · ${modalTitle.toUpperCase()}` });
 
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url;
-  const fileName = 'SPCD_Tecnico_'+modalTitle.replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
-  a.download = fileName;
-  a.click(); URL.revokeObjectURL(url);
+    const t = SpcdExcel.buildTable(ws, {
+      columns: shortH,
+      widths:  colW,
+      rows:    dataRows.map(r => cols.map(c => r[c] ?? '')),
+      startRow: s.nextRow,
+      totalCols: cols.length,
+      formatter: (cell, val, rowDataArr, idx, ci) => {
+        const c = cols[ci], r = dataRows[idx];
+        if (c==='Estado') {
+          SpcdExcel.Fmt.center(cell);
+          if (r[c]==='SUS') SpcdExcel.Fmt.error(cell);
+        }
+        if (c==='Turno N°' || c==='Documento') SpcdExcel.Fmt.center(cell);
+      }
+    });
 
-  if (share && window.SpcdShare) {
-    window.SpcdShare.showShareDialog(blob, fileName, {
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[
+        { label:'Registros',    value: totRegs.toLocaleString('es-AR') },
+        { label:'Equipos únicos', value: equipos.size },
+        susCount>0 ? { label:'Suspendidos', value: susCount } : null
+      ].filter(Boolean)
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
+
+    const fileName = `SPCD_Tecnico_${modalTitle.replace(/\s+/g,'_')}_${SpcdExcel.nowIsoDate()}.xlsx`;
+    await SpcdExcel.exportAndShare(wb, fileName, share ? {
       titulo: modalTitle,
-      periodo: new Date().toLocaleDateString('es-AR'),
+      periodo: SpcdExcel.dateAr(),
       cantidad: (modalRows && modalRows.length) || 0,
       modulo: 'tecnico',
       tipoExport: modalTipo || 'detalle'
-    });
+    } : null);
+  } catch(err) {
+    console.error('Error exportando Excel:', err);
+    alert('Error al generar el Excel: ' + err.message);
   }
 }
 
@@ -2135,6 +2103,7 @@ function groupBy(arr, keyFn) {
 
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
+<script src="spcd-excel-template.js?v=1"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>
 </body>
 </html>

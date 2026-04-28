@@ -701,8 +701,8 @@
   <div class="login-box">
     <div class="login-logo">
       <div class="ll-icon">SP</div>
-      <h2 id="login-title">M&Oacute;DULO OPERATIVO</h2>
-      <p id="login-subtitle">Control de Stock &middot; Insumos &middot; Pedidos</p>
+      <h2 id="login-title">INGRESO AL SISTEMA</h2>
+      <p id="login-subtitle">Sistema de Control Interno</p>
     </div>
     <form id="login-form" onsubmit="doLogin(event)">
       <div class="form-group">
@@ -1902,128 +1902,114 @@ function filterDetailList() {
 }
 
 // ── EXCEL DOWNLOAD desde Detail Modal ──
-function downloadDetailExcel() {
+async function downloadDetailExcel() {
   if (!currentDetailType) return;
+  try {
+    await SpcdExcel.ready();
+    const sede = currentUser ? (currentUser.sede || 'Hospital Italiano') : SpcdExcel.getCurrentSede();
+    const usuario = currentUser ? currentUser.nombre : SpcdExcel.getCurrentUser();
+    const isLotes = (currentDetailType === 'lotes');
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('es-AR');
-  const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-  const sede = currentUser ? (currentUser.sede || 'Hospital Italiano') : '';
-  const usuario = currentUser ? currentUser.nombre : '';
+    let cols, widths, rows, kpis, subtitle, sheetName, fileName, sectionTitle;
 
-  let rows = [];
-  let sheetName = '';
-  let fileName = '';
+    if (isLotes) {
+      const alertas = lotesData.filter(l => l.estado_vencimiento !== 'OK');
+      const vencidos = alertas.filter(l => l.dias_restantes <= 0).length;
+      const proximos = alertas.length - vencidos;
 
-  if (currentDetailType === 'lotes') {
-    // Lotes con alerta
-    const alertas = lotesData.filter(l => l.estado_vencimiento !== 'OK');
-    sheetName = 'Lotes Alerta';
-    fileName = `Lotes_Alerta_${now.toISOString().slice(0,10)}.xlsx`;
-
-    rows.push(['SP CONTROL DATA — LOTES CON ALERTA DE VENCIMIENTO']);
-    rows.push([`Sede: ${sede}`, '', `Generado: ${dateStr} ${timeStr}`, '', `Usuario: ${usuario}`]);
-    rows.push([]);
-    rows.push(['Producto', 'Nro Lote', 'Fecha Vencimiento', 'Cantidad', 'Estado', 'Días Restantes']);
-
-    alertas.forEach(l => {
-      rows.push([
-        l.producto,
-        l.nro_lote,
-        l.fecha_vencimiento || '-',
-        l.cantidad_actual,
-        l.estado_vencimiento,
+      cols   = ['Producto','N° Lote','Vencimiento','Cantidad','Estado','Días'];
+      widths = [38, 16, 16, 12, 14, 12];
+      rows   = alertas.map(l => [
+        l.producto, l.nro_lote, l.fecha_vencimiento || '—',
+        l.cantidad_actual, l.estado_vencimiento,
         l.dias_restantes <= 0 ? 'VENCIDO' : l.dias_restantes
       ]);
-    });
+      kpis = [
+        { label:'Lotes con alerta', value: alertas.length, tone:'cyan' },
+        { label:'Vencidos',         value: vencidos, tone: vencidos>0 ? 'rose' : 'cyan' },
+        { label:'Próximos a vencer',value: proximos, tone: proximos>0 ? 'amber' : 'cyan' }
+      ];
+      subtitle = 'LOTES CON ALERTA DE VENCIMIENTO';
+      sheetName = 'Lotes Alerta';
+      sectionTitle = 'LOTES MONITOREADOS · FEFO';
+      fileName = `SPCD_Lotes_Alerta_${SpcdExcel.nowIsoDate()}.xlsx`;
+    } else {
+      const filterMap = {
+        total:    { label: 'Todos los Productos', filter: () => true },
+        ok:       { label: 'Stock OK',            filter: p => p.semaforo === 'OK' },
+        bajo:     { label: 'Stock Bajo',          filter: p => p.semaforo === 'BAJO' },
+        critico:  { label: 'Stock Crítico',       filter: p => p.semaforo === 'CRITICO' },
+        sinstock: { label: 'Sin Stock',           filter: p => p.semaforo === 'SIN_STOCK' }
+      };
+      const cfg = filterMap[currentDetailType] || filterMap.total;
+      const items = stockData.filter(cfg.filter);
 
-    rows.push([]);
-    rows.push([`Total: ${alertas.length} lotes con alerta`]);
-  } else {
-    // Stock por semáforo
-    const filterMap = {
-      total:    { label: 'Todos los Productos', filter: () => true },
-      ok:       { label: 'Stock OK', filter: p => p.semaforo === 'OK' },
-      bajo:     { label: 'Stock Bajo', filter: p => p.semaforo === 'BAJO' },
-      critico:  { label: 'Stock Crítico', filter: p => p.semaforo === 'CRITICO' },
-      sinstock: { label: 'Sin Stock', filter: p => p.semaforo === 'SIN_STOCK' }
-    };
-    const cfg = filterMap[currentDetailType];
-    const items = stockData.filter(cfg.filter);
-    sheetName = cfg.label;
-    fileName = `Stock_${currentDetailType.charAt(0).toUpperCase() + currentDetailType.slice(1)}_${now.toISOString().slice(0,10)}.xlsx`;
-
-    rows.push([`SP CONTROL DATA — ${cfg.label.toUpperCase()}`]);
-    rows.push([`Sede: ${sede}`, '', `Generado: ${dateStr} ${timeStr}`, '', `Usuario: ${usuario}`]);
-    rows.push([]);
-    rows.push(['Semáforo', 'Producto', 'Tipo', 'Subcategoría', 'Stock Actual', 'Unidad', 'Stock Display']);
-
-    items.forEach(p => {
-      rows.push([
-        p.semaforo.replace('_', ' '),
-        p.nombre,
-        p.tipo,
-        p.subcategoria || '-',
-        p.stock_actual,
-        p.unidad_base || '',
-        p.stock_display || ''
+      const cnt = (sem) => stockData.filter(p => p.semaforo === sem).length;
+      cols   = ['Semáforo','Producto','Tipo','Subcategoría','Stock','Unidad','Display'];
+      widths = [14, 38, 10, 22, 12, 14, 22];
+      rows   = items.map(p => [
+        (p.semaforo||'').replace('_',' '),
+        p.nombre, p.tipo, p.subcategoria || '—',
+        p.stock_actual, p.unidad_base || '', p.stock_display || ''
       ]);
+      kpis = [
+        { label: cfg.label.toUpperCase(), value: items.length, tone:'cyan' },
+        { label:'Críticos',  value: cnt('CRITICO'),  tone: cnt('CRITICO')>0 ? 'rose' : 'cyan' },
+        { label:'Bajo',      value: cnt('BAJO'),     tone: cnt('BAJO')>0 ? 'amber' : 'cyan' },
+        { label:'Sin Stock', value: cnt('SIN_STOCK'),tone: cnt('SIN_STOCK')>0 ? 'rose' : 'cyan' }
+      ];
+      subtitle = `INVENTARIO · ${cfg.label.toUpperCase()}`;
+      sheetName = cfg.label.slice(0,30);
+      sectionTitle = `STOCK · ${cfg.label.toUpperCase()}`;
+      fileName = `SPCD_Stock_${currentDetailType.charAt(0).toUpperCase()+currentDetailType.slice(1)}_${SpcdExcel.nowIsoDate()}.xlsx`;
+    }
+
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName });
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle, totalCols: cols.length,
+      meta:{ modulo:'OPERATIVO', sede, usuario, registros: rows.length }
     });
-
-    rows.push([]);
-    rows.push([`Total: ${items.length} productos`]);
-  }
-
-  // Build workbook with SheetJS
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-
-  // Column widths
-  if (currentDetailType === 'lotes') {
-    ws['!cols'] = [
-      { wch: 35 }, // Producto
-      { wch: 18 }, // Nro Lote
-      { wch: 18 }, // Fecha Vencimiento
-      { wch: 12 }, // Cantidad
-      { wch: 14 }, // Estado
-      { wch: 16 }  // Días Restantes
-    ];
-  } else {
-    ws['!cols'] = [
-      { wch: 14 }, // Semáforo
-      { wch: 35 }, // Producto
-      { wch: 8 },  // Tipo
-      { wch: 20 }, // Subcategoría
-      { wch: 14 }, // Stock Actual
-      { wch: 10 }, // Unidad
-      { wch: 18 }  // Stock Display
-    ];
-  }
-
-  // Merge title row
-  const colCount = currentDetailType === 'lotes' ? 6 : 7;
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } }
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = fileName;
-  a.click(); URL.revokeObjectURL(url);
-
-  showToast(`Excel descargado: ${fileName}`, 'success');
-
-  if (window.__shareAfterExport && window.SpcdShare) {
-    window.__shareAfterExport = false;
-    window.SpcdShare.showShareDialog(blob, fileName, {
-      titulo: 'Detalle Operativo — ' + (currentDetailType || ''),
-      periodo: new Date().toLocaleDateString('es-AR'),
-      cantidad: (typeof detailRows !== 'undefined' ? detailRows.length : 0),
-      modulo: 'operativo',
-      tipoExport: currentDetailType || 'detalle'
+    const k = SpcdExcel.buildKPIs(ws, kpis, { startRow:h.nextRow, totalCols:cols.length });
+    const s = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:sectionTitle });
+    const t = SpcdExcel.buildTable(ws, {
+      columns:cols, widths, rows,
+      startRow:s.nextRow, totalCols:cols.length,
+      formatter:(cell,v,rd,idx,ci,c) => {
+        if (c==='Estado' || c==='Semáforo' || c==='Días') SpcdExcel.Fmt.center(cell);
+        if (c==='Stock' || c==='Cantidad') SpcdExcel.Fmt.int(cell);
+        if (c==='Estado') {
+          if (v==='VENCIDO' || v==='CRITICO') SpcdExcel.Fmt.error(cell);
+          else if (v==='ALERTA' || v==='BAJO') SpcdExcel.Fmt.warn(cell);
+          else if (v==='OK') SpcdExcel.Fmt.success(cell);
+        }
+        if (c==='Días' && v==='VENCIDO') SpcdExcel.Fmt.error(cell);
+        if (c==='Semáforo') {
+          const u = String(v||'').toUpperCase();
+          if (u.includes('CRITICO') || u.includes('SIN')) SpcdExcel.Fmt.error(cell);
+          else if (u.includes('BAJO')) SpcdExcel.Fmt.warn(cell);
+          else if (u.includes('OK')) SpcdExcel.Fmt.success(cell);
+        }
+      }
     });
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[ { label: isLotes ? 'Lotes' : 'Productos', value: rows.length } ]
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
+
+    const result = await SpcdExcel.exportAndShare(wb, fileName,
+      (window.__shareAfterExport ? {
+        titulo: 'Detalle Operativo — ' + (currentDetailType || ''),
+        periodo: SpcdExcel.dateAr(),
+        cantidad: rows.length,
+        modulo:'operativo', tipoExport: currentDetailType || 'detalle'
+      } : null)
+    );
+    if (window.__shareAfterExport) window.__shareAfterExport = false;
+    showToast(`Excel descargado: ${result.fileName}`, 'success');
+  } catch(err) {
+    console.error('Error exportando detalle:', err);
+    showToast('Error al exportar: ' + err.message, 'error');
   }
 }
 
@@ -2221,55 +2207,82 @@ function closeIngresoDetail() {
   document.getElementById('ingreso-detail-overlay').classList.remove('active');
 }
 
-function downloadIngresoExcel() {
+async function downloadIngresoExcel() {
   if (!currentIngresoDetail || currentIngresoDetail.length === 0) return;
-  const items = currentIngresoDetail;
-  const remito = items[0].remito_nro;
-  const title = remito ? `Remito ${remito}` : `Ingreso #${items[0].id}`;
-  const sede = currentUser ? (currentUser.sede || 'Hospital Italiano') : '';
+  try {
+    await SpcdExcel.ready();
+    const items = currentIngresoDetail;
+    const remito = items[0].remito_nro;
+    const title = remito ? `INGRESO · REMITO ${remito}` : `INGRESO #${items[0].id}`;
+    const sede = currentUser ? (currentUser.sede || 'Hospital Italiano') : SpcdExcel.getCurrentSede();
+    const usuario = currentUser ? currentUser.nombre : SpcdExcel.getCurrentUser();
 
-  const rows = [];
-  rows.push([`SP CONTROL DATA \u2014 ${title}`]);
-  rows.push([
-    `Fecha: ${fmtDateTime(items[0].fecha)}`,
-    remito ? `N\u00b0 Remito: ${remito}` : '',
-    `Sede: ${sede}`
-  ]);
-  if (items[0].observacion) rows.push([`Obs: ${items[0].observacion}`]);
-  rows.push([]);
-  rows.push(['#', 'Producto', 'Tipo', 'Cantidad', 'Unidad', 'Total Unidades', 'Observaci\u00f3n']);
-
-  items.forEach((m, idx) => {
-    const prod = m.productos || {};
-    const cant = Math.abs(m.cantidad);
-    const unid = prod.factor_caja > 1
-      ? (prod.nombre_caja || 'Caja x' + prod.factor_caja) + ' ' + (prod.unidad_base || 'unidad')
-      : (prod.unidad_base || 'unidad');
-    const totalUnid = prod.factor_caja > 1 ? cant * prod.factor_caja : cant;
-
-    rows.push([idx + 1, prod.nombre || '', prod.tipo || '', cant, unid, totalUnid, m.observacion || '']);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 4 }, { wch: 35 }, { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 14 }, { wch: 20 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Ingreso');
-  const filename = remito ? `Ingreso_${remito}.xlsx` : `Ingreso_${items[0].id}.xlsx`;
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename;
-  a.click(); URL.revokeObjectURL(url);
-
-  if (window.__shareAfterExport && window.SpcdShare) {
-    window.__shareAfterExport = false;
-    window.SpcdShare.showShareDialog(blob, filename, {
-      titulo: 'Ingreso de mercadería' + (remito ? ' · Remito ' + remito : ''),
-      periodo: new Date().toLocaleDateString('es-AR'),
-      cantidad: items.length,
-      modulo: 'operativo',
-      tipoExport: 'ingreso'
+    const cols   = ['#','Producto','Tipo','Cantidad','Unidad','Total Unid.','Observaci\u00f3n'];
+    const widths = [4, 38, 10, 12, 22, 14, 24];
+    const rows = items.map((m, idx) => {
+      const prod = m.productos || {};
+      const cant = Math.abs(m.cantidad);
+      const unid = prod.factor_caja > 1
+        ? (prod.nombre_caja || 'Caja x' + prod.factor_caja) + ' ' + (prod.unidad_base || 'unidad')
+        : (prod.unidad_base || 'unidad');
+      const totalUnid = prod.factor_caja > 1 ? cant * prod.factor_caja : cant;
+      return [idx+1, prod.nombre || '', prod.tipo || '', cant, unid, totalUnid, m.observacion || ''];
     });
+
+    const totalUnidades = rows.reduce((s,r) => s + (r[5]||0), 0);
+    const tipoMed = items.filter(m => (m.productos||{}).tipo === 'MED').length;
+    const tipoIns = items.filter(m => (m.productos||{}).tipo === 'INS').length;
+
+    const subtitle = title;
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName:'Ingreso' });
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle, totalCols: cols.length,
+      meta:{
+        modulo:'OPERATIVO',
+        sede, usuario,
+        registros: items.length,
+        extra: `FECHA: ${fmtDateTime(items[0].fecha)}` + (remito ? `  \u25c6  REMITO: ${remito}` : '')
+      }
+    });
+    const k = SpcdExcel.buildKPIs(ws, [
+      { label:'Productos',     value: items.length,      tone:'cyan' },
+      { label:'Unidades base', value: totalUnidades.toLocaleString('es-AR'), tone:'silver' },
+      { label:'Medicamentos',  value: tipoMed,           tone:'emerald' },
+      { label:'Insumos',       value: tipoIns,           tone:'cyan' }
+    ], { startRow:h.nextRow, totalCols:cols.length });
+    const sec = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:`\u00cdTEMS RECIBIDOS \u00b7 ${title}` });
+    const t = SpcdExcel.buildTable(ws, {
+      columns:cols, widths, rows,
+      startRow:sec.nextRow, totalCols:cols.length,
+      formatter:(cell,v,rd,idx,ci,c) => {
+        if (c==='#' || c==='Tipo') SpcdExcel.Fmt.center(cell);
+        if (c==='Cantidad' || c==='Total Unid.') SpcdExcel.Fmt.int(cell);
+      }
+    });
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[
+        { label:'Productos', value: items.length },
+        { label:'Unidades base', value: totalUnidades.toLocaleString('es-AR') },
+        items[0].observacion ? { label:'Obs', value: items[0].observacion } : null
+      ].filter(Boolean)
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
+
+    const fileName = remito ? `SPCD_Ingreso_${remito}_${SpcdExcel.nowIsoDate()}.xlsx`
+                            : `SPCD_Ingreso_${items[0].id}_${SpcdExcel.nowIsoDate()}.xlsx`;
+    await SpcdExcel.exportAndShare(wb, fileName,
+      (window.__shareAfterExport ? {
+        titulo:'Ingreso de mercader' + String.fromCharCode(237) + 'a' + (remito ? ' · Remito ' + remito : ''),
+        periodo: SpcdExcel.dateAr(),
+        cantidad: items.length,
+        modulo:'operativo', tipoExport:'ingreso'
+      } : null)
+    );
+    if (window.__shareAfterExport) window.__shareAfterExport = false;
+  } catch(err) {
+    console.error('Error exportando ingreso:', err);
+    showToast('Error al exportar: ' + err.message, 'error');
   }
 }
 
@@ -3386,21 +3399,180 @@ async function downloadPedidoExcel() {
     await spcdAlert('No ten\u00e9s permisos para descargar remitos.', { type:'error', title:'Acceso restringido' });
     return;
   }
+  try {
+    await SpcdExcel.ready();
   const { pedido: ped, items, movsByProd = {} } = currentPedidoDetail;
   const now = new Date();
-  const fechaHoy = now.toLocaleDateString('es-AR');
   const sede = (typeof localStorage !== 'undefined' && localStorage.getItem('spcd_sede')) || 'Hospital Italiano';
 
   const esRemito = ped.estado === 'ENTREGADO';
   const tituloDoc = esRemito ? `REMITO DE SALIDA \u2014 PEDIDO #${ped.id}` : `PEDIDO #${ped.id}`;
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'SP Control Data';
-  wb.created = now;
-  const ws = wb.addWorksheet(esRemito ? `Remito ${ped.id}` : `Pedido ${ped.id}`);
+  /* Columnas según haya lotes o no */
+  const mostrarLotes = esRemito || ped.estado === 'APROBADO';
+  const cols = mostrarLotes
+    ? ['#','Producto','Tipo','Cantidad','Unidad','Total Unid.','Lotes Asignados (FEFO)','Observación']
+    : ['#','Producto','Tipo','Cantidad','Unidad','Total Unid.','Observación'];
+  const widths = mostrarLotes
+    ? [4,38,8,12,20,14,44,24]
+    : [4,42,8,12,22,16,28];
+  const totalCols = cols.length;
 
-  const NAVY='FF0F172A', BLUED='FF1E3A8A', BLUE='FF3B82F6', WHITE='FFE2E8F0',
-        RED='FFF87171', SURF='FF111827', CYAN='FF22DBAE', MUTED='FF64748B';
+  /* Filas armadas para la tabla */
+  const rows = items.map((item, idx) => {
+    const prod = item.productos || {};
+    const unid = (prod.factor_caja > 1)
+      ? (prod.nombre_caja || 'Caja x' + prod.factor_caja) + ' de ' + (prod.unidad_base || 'unidad')
+      : (prod.unidad_base || 'unidad');
+    const totalUnid = (prod.factor_caja > 1) ? item.cantidad_solicitada * prod.factor_caja : item.cantidad_solicitada;
+    let lotesStr = '';
+    if (mostrarLotes) {
+      const movs = movsByProd[item.producto_id] || [];
+      if (prod.requiere_lote) {
+        if (movs.length === 0) lotesStr = '—';
+        else lotesStr = movs.filter(m => m.lote_id).map(m => {
+          const lo = m.lotes || {};
+          const nro = lo.nro_lote || ('ID ' + m.lote_id);
+          const vence = lo.fecha_vencimiento ? ' (vence ' + fmtDate(lo.fecha_vencimiento) + ')' : '';
+          return `${nro} ×${Math.abs(m.cantidad)}${vence}`;
+        }).join(' | ');
+      } else {
+        lotesStr = 'Sin lote (INS)';
+      }
+    }
+    return mostrarLotes
+      ? [idx+1, prod.nombre || 'Producto #' + item.producto_id, prod.tipo || '', item.cantidad_solicitada, unid, totalUnid, lotesStr, item.observacion || '']
+      : [idx+1, prod.nombre || 'Producto #' + item.producto_id, prod.tipo || '', item.cantidad_solicitada, unid, totalUnid, item.observacion || ''];
+  });
+
+  /* KPIs operativos del pedido */
+  const totalCantSolic = items.reduce((s, i) => s + (i.cantidad_solicitada || 0), 0);
+  const totalUnidades  = rows.reduce((s,r) => s + (r[5]||0), 0);
+  const tipoMed = items.filter(i => (i.productos||{}).tipo === 'MED').length;
+  const lotesUsados = mostrarLotes
+    ? Object.values(movsByProd).reduce((s, ms) => s + ms.filter(m => m.lote_id).length, 0)
+    : 0;
+
+  const kpis = [
+    { label: esRemito ? 'Items entregados' : 'Items pedidos', value: items.length, tone:'cyan' },
+    { label:'Unidades base', value: totalUnidades.toLocaleString('es-AR'), tone:'silver' },
+    { label:'Medicamentos',  value: tipoMed, tone:'emerald' },
+    mostrarLotes
+      ? { label:'Lotes asignados', value: lotesUsados, tone: lotesUsados>0 ? 'cyan' : 'amber' }
+      : { label:'Estado', value: (ped.estado||'PENDIENTE'), tone:'cyan' }
+  ];
+
+  /* Subtitle + book */
+  const subtitle = tituloDoc;
+  const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName: esRemito ? `Remito ${ped.id}` : `Pedido ${ped.id}` });
+
+  const partes = [];
+  if (ped.aprobado_por_username) partes.push(`Aprobado por: ${ped.aprobado_por_username}`);
+  if (ped.fecha_aprobacion)      partes.push(`Aprobación: ${fmtDateTime(ped.fecha_aprobacion)}`);
+  if (ped.entregado_por_username) partes.push(`Entregado por: ${ped.entregado_por_nombre || ped.entregado_por_username}`);
+  if (ped.fecha_entrega)         partes.push(`Entrega: ${fmtDateTime(ped.fecha_entrega)}`);
+  const obsLimpia = ped._observacionLimpia != null ? ped._observacionLimpia : ped.observacion;
+  if (obsLimpia) partes.push(`Obs: ${obsLimpia}`);
+
+  const h = SpcdExcel.buildHeader(ws, {
+    subtitle,
+    totalCols,
+    meta:{
+      modulo:'OPERATIVO',
+      sede,
+      usuario: SpcdExcel.getCurrentUser(),
+      registros: items.length,
+      extra: [
+        `SOLIC: ${ped.solicitante_nombre || '-'}`,
+        `SERV: ${ped.servicio || '-'}`,
+        `URG: ${ped.urgencia || '-'}`,
+        `EST: ${ped.estado || '-'}`
+      ].join(' ◆ ')
+    }
+  });
+
+  const k = SpcdExcel.buildKPIs(ws, kpis, { startRow: h.nextRow, totalCols });
+
+  /* Línea de aprobación/entrega (sólo si hay metadata) */
+  let nextRow = k.nextRow;
+  if (partes.length) {
+    SpcdExcel.fillRange(ws, nextRow, 1, totalCols, SpcdExcel.P.STEEL);
+    ws.mergeCells(nextRow, 1, nextRow, totalCols);
+    const c = ws.getCell(nextRow, 1);
+    c.value = '  ' + partes.join('   ◆   ');
+    c.font = { name:'Consolas', size:9, color:{ argb: SpcdExcel.P.NEON } };
+    c.alignment = { horizontal:'left', vertical:'middle' };
+    c.border = { bottom: { style:'hair', color:{ argb: SpcdExcel.P.GRAPHITE } } };
+    ws.getRow(nextRow).height = 20;
+    nextRow++;
+  }
+
+  const sec = SpcdExcel.buildSection(ws, { startRow: nextRow, totalCols, title: esRemito ? `ÍTEMS ENTREGADOS · FEFO` : `ÍTEMS DEL PEDIDO` });
+  const t = SpcdExcel.buildTable(ws, {
+    columns: cols, widths, rows,
+    startRow: sec.nextRow, totalCols,
+    formatter: (cell, v, rd, idx, ci, c) => {
+      if (c==='#' || c==='Tipo') SpcdExcel.Fmt.center(cell);
+      if (c==='Cantidad' || c==='Total Unid.') SpcdExcel.Fmt.int(cell);
+    }
+  });
+
+  /* Totales */
+  const tot = SpcdExcel.buildTotals(ws, {
+    startRow: t.nextRow, totalCols,
+    items:[
+      { label:'Items', value: items.length },
+      { label:'Cantidad solicitada', value: totalCantSolic.toLocaleString('es-AR') },
+      { label:'Unidades base', value: totalUnidades.toLocaleString('es-AR') },
+      mostrarLotes ? { label:'Lotes asignados', value: lotesUsados } : null
+    ].filter(Boolean)
+  });
+
+  let signRow = tot.nextRow;
+  if (esRemito) {
+    /* spacer */
+    SpcdExcel.fillRange(ws, signRow, 1, totalCols, SpcdExcel.P.CARBON);
+    ws.getRow(signRow).height = 12;
+    signRow++;
+    /* fila de firma */
+    const halfL = Math.floor(totalCols/2);
+    SpcdExcel.fillRange(ws, signRow, 1, totalCols, SpcdExcel.P.CARBON);
+    ws.mergeCells(signRow, 1, signRow, halfL);
+    const f1 = ws.getCell(signRow, 1);
+    f1.value = '\n\n___________________________\nENTREGA · DEPÓSITO';
+    f1.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+    f1.font = { name:'Calibri', size:9, color:{ argb: SpcdExcel.P.SILVER } };
+    ws.mergeCells(signRow, halfL+1, signRow, totalCols);
+    const f2 = ws.getCell(signRow, halfL+1);
+    f2.value = '\n\n___________________________\nRECIBE · SERVICIO';
+    f2.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+    f2.font = { name:'Calibri', size:9, color:{ argb: SpcdExcel.P.SILVER } };
+    ws.getRow(signRow).height = 60;
+    signRow++;
+  }
+
+  SpcdExcel.buildFooter(ws, { startRow: signRow, totalCols, hash: h.hash });
+
+  const prefijo = esRemito ? 'Remito' : 'Pedido';
+  const fileName = `SPCD_${prefijo}_${ped.id}_${SpcdExcel.nowIsoDate()}.xlsx`;
+  await SpcdExcel.exportAndShare(wb, fileName, null);
+
+  showToast(`${esRemito ? 'Remito' : 'Excel'} descargado: #${ped.id}`, 'success');
+  } catch(err) {
+    console.error('Error exportando pedido/remito:', err);
+    showToast('Error al exportar: ' + err.message, 'error');
+    return;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Bloque legacy de downloadPedidoExcel migrado al template
+   SpcdExcel en abril 2026. Se mantiene como comentario por
+   referencia histórica y se removerá en limpieza posterior.
+   ────────────────────────────────────────────────────────────── */
+/* LEGACY-START
+async function __spcd_unused_pedidoExcelLegacy() {
+  let sede, ped, items, movsByProd, now, wb, ws, NAVY, BLUED, BLUE, WHITE, RED, SURF, CYAN, MUTED, esRemito, tituloDoc, fechaHoy;
 
   // Columnas (según si hay lotes o no)
   const mostrarLotes = esRemito || ped.estado === 'APROBADO';
@@ -3594,6 +3766,7 @@ async function downloadPedidoExcel() {
 
   showToast(`${esRemito ? 'Remito' : 'Excel'} descargado: #${ped.id}`, 'success');
 }
+LEGACY-END */
 
 // ============================================================
 // LINK PARA SOLICITANTES — modal con link copiable + WhatsApp
@@ -4321,6 +4494,7 @@ function aplicarModoAccesoPostLogin() {
 </script>
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
+<script src="spcd-excel-template.js?v=1"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>
 </body>
 </html>

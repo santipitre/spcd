@@ -1457,96 +1457,76 @@
   }
 
   async function buildSpcdWorkbook(dataRows, cols, shortH, colW, opts) {
-    const ExcelJS = await ensureExcelJS();
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'SP Control Data';
-    const ws = wb.addWorksheet('Detalle');
-
-    const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0',
-          RED='F87171', SURF='111827', CYAN='22DBAE';
-
-    const sede  = localStorage.getItem('spcd_sede') || 'General';
-    const fecha = new Date().toLocaleDateString('es-AR');
-
-    const logoB64 = generateLogoPNG();
-    const logoId = wb.addImage({ base64: logoB64, extension: 'png' });
-    ws.addImage(logoId, { tl:{col:0,row:0}, ext:{width:220,height:46} });
-
-    ws.mergeCells(1,3,1,cols.length);
-    const t1 = ws.getCell(1,3);
-    t1.value = opts.reportTitle;
-    t1.font = {name:'Calibri',size:14,bold:true,color:{argb:WHITE}};
-    t1.alignment = {horizontal:'center',vertical:'middle'};
-    for (let i=1;i<=cols.length;i++) ws.getCell(1,i).fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(1).height = 38;
-
-    for (let i=1;i<=cols.length;i++) {
-      const dc = ws.getCell(2,i);
-      dc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-      dc.border = {bottom:{style:'medium',color:{argb:BLUE}}};
-    }
-    ws.getRow(2).height = 4;
-
-    ws.mergeCells(3,1,3,cols.length);
-    const t2 = ws.getCell('A3');
-    t2.value = `  Sede: ${sede}   |   ${fecha}   |   ${dataRows.length} registros   |   ${opts.infoTitle.toUpperCase()}`;
-    t2.font = {name:'Calibri',size:9,bold:true,color:{argb:RED}};
-    t2.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
-    t2.alignment = {horizontal:'center',vertical:'middle'};
-    ws.getRow(3).height = 20;
-
-    for (let i=1;i<=cols.length;i++) ws.getCell(4,i).fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(4).height = 4;
-
-    const hr = ws.getRow(5);
-    shortH.forEach((h,i) => {
-      const cell = hr.getCell(i+1);
-      cell.value = h;
-      cell.font = {name:'Calibri',size:8,bold:true,color:{argb:WHITE}};
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
-      cell.alignment = {horizontal:'center',vertical:'middle',wrapText:true};
-      cell.border = {bottom:{style:'thin',color:{argb:CYAN}},top:{style:'thin',color:{argb:BLUE}}};
-    });
-    hr.height = 18;
-    colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
-
-    const thinB = {style:'hair',color:{argb:'334155'}};
-    const borderStyle = {bottom:thinB,left:{style:'hair',color:{argb:'1E293B'}},right:{style:'hair',color:{argb:'1E293B'}}};
-    dataRows.forEach((r,idx) => {
-      const row = ws.getRow(6+idx);
-      const bg = idx%2===0 ? SURF : '1A2332';
-      cols.forEach((c,i) => {
-        const cell = row.getCell(i+1);
-        const v = r[c];
-        cell.value = (v === undefined || v === null) ? '' : v;
-        const fontColor = opts.cellColorFn ? (opts.cellColorFn(c, v, r) || WHITE) : WHITE;
-        cell.font = {name:'Calibri',size:8,color:{argb:fontColor}};
-        cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-        cell.border = borderStyle;
-        cell.alignment = {vertical:'middle',shrinkToFit:true};
-        if (typeof v === 'number') cell.alignment.horizontal = 'center';
+    /* Migrado a SpcdExcel template (Bloomberg/Fintech style) — abril 2026 */
+    if (!window.SpcdExcel) {
+      /* fallback: si por algún motivo no está cargado el template, lo cargamos al vuelo */
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'spcd-excel-template.js?v=1';
+        s.onload = res; s.onerror = () => rej(new Error('No se pudo cargar spcd-excel-template.js'));
+        document.head.appendChild(s);
       });
-      row.height = 14;
+    }
+    await window.SpcdExcel.ready();
+
+    const subtitle = opts.reportTitle || 'INFORME SPCD';
+    const { wb, ws } = window.SpcdExcel.createBook({ subtitle, sheetName:'Detalle' });
+
+    /* KPIs simples — total de registros + cantidad de columnas + tipo */
+    const totRegs = dataRows.length;
+
+    const h = window.SpcdExcel.buildHeader(ws, {
+      subtitle,
+      totalCols: cols.length,
+      meta:{
+        modulo:  (opts.modulo || 'CHATBOT').toUpperCase(),
+        sede:    window.SpcdExcel.getCurrentSede(),
+        usuario: window.SpcdExcel.getCurrentUser(),
+        registros: totRegs,
+        extra:    opts.infoTitle ? opts.infoTitle.toUpperCase() : null
+      }
     });
 
-    const lastRow = ws.getRow(6 + dataRows.length);
-    for (let i=1;i<=cols.length;i++) {
-      const fc = lastRow.getCell(i);
-      fc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-      fc.border = {top:{style:'thin',color:{argb:BLUE}}};
-    }
-    ws.mergeCells(6 + dataRows.length, 1, 6 + dataRows.length, cols.length);
-    lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
-    lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
-    lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
-    lastRow.height = 16;
+    /* KPIs si vienen, si no algo simple */
+    const kpis = opts.kpis || [
+      { label:'Registros',  value: totRegs.toLocaleString('es-AR'), tone:'cyan' },
+      { label:'Columnas',   value: cols.length, tone:'silver' },
+      { label:'Tipo',       value: (opts.infoTitle || 'Detalle').toUpperCase(), tone:'emerald' }
+    ];
+    const k = window.SpcdExcel.buildKPIs(ws, kpis, { startRow: h.nextRow, totalCols: cols.length });
 
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = opts.fileName;
-    a.click(); URL.revokeObjectURL(url);
+    const sec = window.SpcdExcel.buildSection(ws, { startRow: k.nextRow, totalCols: cols.length, title: (opts.infoTitle || 'DATOS').toUpperCase() });
+
+    const t = window.SpcdExcel.buildTable(ws, {
+      columns: shortH,
+      widths:  colW,
+      rows:    dataRows.map(r => cols.map(c => r[c])),
+      startRow: sec.nextRow,
+      totalCols: cols.length,
+      formatter: (cell, v, rowDataArr, idx, ci, shortName) => {
+        const c = cols[ci];
+        const r = dataRows[idx];
+        if (typeof v === 'number') window.SpcdExcel.Fmt.center(cell);
+        if (opts.cellColorFn) {
+          const argb = opts.cellColorFn(c, v, r);
+          if (argb) {
+            /* el cellColorFn devuelve hex o argb (8 chars). Lo tomamos como argb completo. */
+            const norm = (argb.length === 8 ? argb : ('FF' + argb)).toUpperCase();
+            cell.font = { ...(cell.font||{}), color:{ argb: norm }, bold:true };
+          }
+        }
+        if (c === 'Coseguro' || c === 'Neto Unitario') window.SpcdExcel.Fmt.money(cell);
+      }
+    });
+
+    const tot = window.SpcdExcel.buildTotals(ws, {
+      startRow: t.nextRow,
+      totalCols: cols.length,
+      items: [{ label:'Registros', value: totRegs.toLocaleString('es-AR') }]
+    });
+    window.SpcdExcel.buildFooter(ws, { startRow: tot.nextRow, totalCols: cols.length, hash: h.hash });
+
+    await window.SpcdExcel.exportAndShare(wb, opts.fileName, null);
   }
 
   function isExportIntent(text) {

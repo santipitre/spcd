@@ -1434,6 +1434,8 @@ function closeRealizadosPage() {
 async function exportRealizadosExcel(share) {
   if (!realizadosData.length) return;
   try {
+    await SpcdExcel.ready();
+
     const conInforme = realizadosData;
     const byMed = {};
     conInforme.forEach(r => {
@@ -1455,107 +1457,57 @@ async function exportRealizadosExcel(share) {
       return { medico: med, count: rows.length, avgDias };
     }).sort((a,b) => b.count - a.count);
 
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'SP Control Data';
-    const ws = wb.addWorksheet('Informes Realizados');
+    const totInfs = medData.reduce((s,m) => s + m.count, 0);
+    const top    = medData[0] ? medData[0].count : 0;
+    const cols   = ['#','Médico Informante','Informes'];
+    const widths = [6, 38, 14];
 
-    const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0',
-          RED='F87171', AMBER='FBBF24', GREEN='55E78B', SURF='111827', CYAN='22DBAE';
-    const sede = localStorage.getItem('spcd_sede') || 'General';
-    const fecha = new Date().toLocaleDateString('es-AR');
+    const subtitle = 'INFORMES REALIZADOS POR MÉDICO';
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName:'Realizados' });
 
-    const colW = [6, 30, 14];
-    colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
-
-    // Logo
-    const logoB64 = generateLogoPNG();
-    const logoId = wb.addImage({base64:logoB64,extension:'png'});
-    ws.addImage(logoId,{tl:{col:0,row:0},ext:{width:220,height:46}});
-
-    // Fila 1: Título
-    ws.mergeCells(1,3,1,3);
-    ws.getCell(1,3).value = 'INFORMES REALIZADOS';
-    ws.getCell(1,3).font = {name:'Calibri',size:14,bold:true,color:{argb:WHITE}};
-    ws.getCell(1,3).alignment = {horizontal:'center',vertical:'middle'};
-    for(let i=1;i<=3;i++) ws.getCell(1,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(1).height = 38;
-
-    // Fila 2: Línea
-    for(let i=1;i<=3;i++) { ws.getCell(2,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}}; ws.getCell(2,i).border={bottom:{style:'medium',color:{argb:BLUE}}}; }
-    ws.getRow(2).height = 4;
-
-    // Fila 3: Info
-    ws.mergeCells(3,1,3,3);
-    ws.getCell('A3').value = `  Sede: ${sede}   |   ${fecha}   |   ${conInforme.length} estudios informados   |   ${medData.length} médicos`;
-    ws.getCell('A3').font = {name:'Calibri',size:9,bold:true,color:{argb:CYAN}};
-    ws.getCell('A3').fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
-    ws.getCell('A3').alignment = {horizontal:'center',vertical:'middle'};
-    ws.getRow(3).height = 20;
-
-    // Fila 4: Espacio
-    for(let i=1;i<=3;i++) ws.getCell(4,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(4).height = 4;
-
-    // Fila 5: Headers
-    const headers = ['#','Médico Informante','Informes'];
-    const hr = ws.getRow(5);
-    headers.forEach((h,i) => {
-      const cell = hr.getCell(i+1);
-      cell.value = h;
-      cell.font = {name:'Calibri',size:9,bold:true,color:{argb:WHITE}};
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
-      cell.alignment = {horizontal:'center',vertical:'middle'};
-      cell.border = {bottom:{style:'thin',color:{argb:CYAN}}};
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle, totalCols: cols.length,
+      meta:{ modulo:'MEDICO', sede:SpcdExcel.getCurrentSede(), usuario:SpcdExcel.getCurrentUser(), registros: medData.length, extra:`${conInforme.length} estudios` }
     });
-    hr.height = 20;
-
-    // Datos
-    const thinB = {style:'hair',color:{argb:'334155'}};
-    medData.forEach((m, idx) => {
-      const row = ws.getRow(6 + idx);
-      const bg = idx % 2 === 0 ? SURF : '1A2332';
-      const vals = [idx + 1, m.medico, m.count];
-
-      vals.forEach((v, i) => {
-        const cell = row.getCell(i + 1);
-        cell.value = v;
-        let fontColor = WHITE;
-        if (i === 2) fontColor = GREEN;
-        cell.font = {name:'Calibri',size:9,color:{argb:fontColor}};
-        cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-        cell.border = {bottom:thinB};
-        cell.alignment = {vertical:'middle', horizontal: i === 0 || i >= 2 ? 'center' : 'left'};
-      });
-      row.height = 16;
+    const k = SpcdExcel.buildKPIs(ws, [
+      { label:'Médicos',         value: medData.length,                   tone:'cyan' },
+      { label:'Estudios totales',value: conInforme.length.toLocaleString('es-AR'), tone:'silver' },
+      { label:'Top informante',  value: top,                              tone:'emerald', hint: medData[0]?medData[0].medico.split(' ')[0]:'' }
+    ], { startRow:h.nextRow, totalCols:cols.length });
+    const s = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:'RANKING POR MÉDICO INFORMANTE' });
+    const t = SpcdExcel.buildTable(ws, {
+      columns: cols, widths,
+      rows: medData.map((m, i) => [i+1, m.medico, m.count]),
+      startRow: s.nextRow, totalCols: cols.length,
+      formatter: (cell, v, rd, idx, ci, cName) => {
+        if (cName==='#' || cName==='Informes') SpcdExcel.Fmt.center(cell);
+        if (cName==='Informes') SpcdExcel.Fmt.success(cell);
+      }
     });
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[
+        { label:'Médicos', value: medData.length },
+        { label:'Estudios', value: totInfs }
+      ]
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
 
-    // Fila final
-    const lastRow = ws.getRow(6 + medData.length);
-    for(let i=1;i<=3;i++) { lastRow.getCell(i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}}; lastRow.getCell(i).border={top:{style:'thin',color:{argb:BLUE}}}; }
-    ws.mergeCells(6+medData.length,1,6+medData.length,3);
-    lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
-    lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
-    lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
-    lastRow.height = 16;
-
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    const fileName = 'SPCD_Medico_Informes_Realizados_'+new Date().toISOString().slice(0,10)+'.xlsx';
-    a.download = fileName;
-    a.click(); URL.revokeObjectURL(url);
-
-    if (share && window.SpcdShare) {
-      window.SpcdShare.showShareDialog(blob, fileName, {
-        titulo: 'Informes Realizados por Médico',
-        periodo: new Date().toLocaleDateString('es-AR'),
-        cantidad: realizadosData.length,
-        modulo: 'medico',
-        tipoExport: 'realizados'
-      });
+    const fileName = `SPCD_Medico_Informes_Realizados_${SpcdExcel.nowIsoDate()}.xlsx`;
+    await SpcdExcel.exportAndShare(wb, fileName, share ? {
+      titulo:'Informes Realizados por Médico',
+      periodo: SpcdExcel.dateAr(),
+      cantidad: realizadosData.length,
+      modulo:'medico', tipoExport:'realizados'
+    } : null);
+  } catch(err) {
+    console.error('Export error:', err);
+    if (typeof spcdAlert === 'function') {
+      spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' });
+    } else {
+      alert('Error al exportar: ' + err.message);
     }
-  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
+  }
 }
 
 /* ═══════════════════════════════════
@@ -1650,112 +1602,73 @@ function closeTiempoPage() {
 async function exportTiempoExcel(share) {
   if (!tiempoData.length) return;
   try {
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'SP Control Data';
-    const ws = wb.addWorksheet('Tiempo Promedio');
+    await SpcdExcel.ready();
 
-    const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0',
-          RED='F87171', AMBER='FBBF24', GREEN='55E78B', SURF='111827', CYAN='22DBAE';
-    const sede = localStorage.getItem('spcd_sede') || 'General';
-    const fecha = new Date().toLocaleDateString('es-AR');
-
-    const colW = [6, 30, 18, 14];
-    colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
-
-    // Logo
-    const logoB64 = generateLogoPNG();
-    const logoId = wb.addImage({base64:logoB64,extension:'png'});
-    ws.addImage(logoId,{tl:{col:0,row:0},ext:{width:220,height:46}});
-
-    // Fila 1: Título
-    ws.mergeCells(1,3,1,4);
-    ws.getCell(1,3).value = 'TIEMPO PROM. INFORME';
-    ws.getCell(1,3).font = {name:'Calibri',size:14,bold:true,color:{argb:AMBER}};
-    ws.getCell(1,3).alignment = {horizontal:'center',vertical:'middle'};
-    for(let i=1;i<=4;i++) ws.getCell(1,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(1).height = 38;
-
-    // Fila 2: Línea
-    for(let i=1;i<=4;i++) { ws.getCell(2,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}}; ws.getCell(2,i).border={bottom:{style:'medium',color:{argb:BLUE}}}; }
-    ws.getRow(2).height = 4;
-
-    // Fila 3: Info
+    const cols   = ['#','Médico Informante','Tiempo Prom. (días)','Informes'];
+    const widths = [6, 32, 22, 14];
     const avgGen = document.getElementById('tiempo-avg').textContent;
-    ws.mergeCells(3,1,3,4);
-    ws.getCell('A3').value = `  Sede: ${sede}   |   ${fecha}   |   ${tiempoData.length} médicos   |   Prom. General: ${avgGen}`;
-    ws.getCell('A3').font = {name:'Calibri',size:9,bold:true,color:{argb:CYAN}};
-    ws.getCell('A3').fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
-    ws.getCell('A3').alignment = {horizontal:'center',vertical:'middle'};
-    ws.getRow(3).height = 20;
 
-    // Fila 4: Espacio
-    for(let i=1;i<=4;i++) ws.getCell(4,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    ws.getRow(4).height = 4;
+    /* KPIs */
+    const totMeds = tiempoData.length;
+    const totInfs = tiempoData.reduce((s,m) => s + m.count, 0);
+    const fueraSLA = tiempoData.filter(m => m.avgDias >= 7).length;
+    const enRiesgo = tiempoData.filter(m => m.avgDias >= 3 && m.avgDias < 7).length;
 
-    // Fila 5: Headers
-    const headers = ['#','Médico Informante','Tiempo Prom. (días)','Informes'];
-    const hr = ws.getRow(5);
-    headers.forEach((h,i) => {
-      const cell = hr.getCell(i+1);
-      cell.value = h;
-      cell.font = {name:'Calibri',size:9,bold:true,color:{argb:WHITE}};
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
-      cell.alignment = {horizontal:'center',vertical:'middle'};
-      cell.border = {bottom:{style:'thin',color:{argb:CYAN}}};
+    const subtitle = 'TIEMPO PROMEDIO DE INFORME';
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName:'Tiempo' });
+
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle, totalCols: cols.length,
+      meta:{ modulo:'MEDICO', sede:SpcdExcel.getCurrentSede(), usuario:SpcdExcel.getCurrentUser(), registros: totMeds, extra:`PROM. GLOBAL: ${avgGen}` }
     });
-    hr.height = 20;
-
-    // Datos
-    const thinB = {style:'hair',color:{argb:'334155'}};
-    tiempoData.forEach((m, idx) => {
-      const row = ws.getRow(6 + idx);
-      const bg = idx % 2 === 0 ? SURF : '1A2332';
-      const avgVal = parseFloat(m.avgDias.toFixed(1));
-      const vals = [idx + 1, m.medico, avgVal, m.count];
-
-      vals.forEach((v, i) => {
-        const cell = row.getCell(i + 1);
-        cell.value = v;
-        let fontColor = WHITE;
-        if (i === 2 && typeof v === 'number') {
-          fontColor = v < 1 ? GREEN : v < 3 ? CYAN : v < 7 ? AMBER : RED;
+    const k = SpcdExcel.buildKPIs(ws, [
+      { label:'Médicos',     value: totMeds,                       tone:'cyan' },
+      { label:'Informes',    value: totInfs.toLocaleString('es-AR'), tone:'silver' },
+      { label:'Promedio',    value: avgGen,                        tone:'emerald' },
+      { label:'Fuera de SLA',value: fueraSLA, tone: fueraSLA>0 ? 'rose' : 'cyan', hint:'≥ 7 días' }
+    ], { startRow:h.nextRow, totalCols:cols.length });
+    const s = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:'PERFORMANCE INDIVIDUAL · DÍAS PROMEDIO' });
+    const t = SpcdExcel.buildTable(ws, {
+      columns: cols, widths,
+      rows: tiempoData.map((m,i) => [i+1, m.medico, parseFloat(m.avgDias.toFixed(1)), m.count]),
+      startRow: s.nextRow, totalCols: cols.length,
+      formatter: (cell, v, rd, idx, ci, cName) => {
+        if (cName==='#' || cName==='Tiempo Prom. (días)' || cName==='Informes') SpcdExcel.Fmt.center(cell);
+        if (cName==='Tiempo Prom. (días)' && typeof v === 'number') {
+          cell.numFmt = '0.0 "días"';
+          if (v >= 7)      SpcdExcel.Fmt.error(cell);
+          else if (v >= 3) SpcdExcel.Fmt.warn(cell);
+          else             SpcdExcel.Fmt.success(cell);
         }
-        if (i === 3) fontColor = GREEN;
-        cell.font = {name:'Calibri',size:9,color:{argb:fontColor}};
-        cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-        cell.border = {bottom:thinB};
-        cell.alignment = {vertical:'middle', horizontal: i === 0 || i >= 2 ? 'center' : 'left'};
-      });
-      row.height = 16;
+        if (cName==='Informes') SpcdExcel.Fmt.accent(cell);
+      }
     });
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[
+        { label:'Médicos', value: totMeds },
+        { label:'Informes', value: totInfs },
+        { label:'Promedio global', value: avgGen },
+        fueraSLA>0 ? { label:'Fuera SLA', value: fueraSLA } : null
+      ].filter(Boolean)
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
 
-    // Fila final
-    const lastRow = ws.getRow(6 + tiempoData.length);
-    for(let i=1;i<=4;i++) { lastRow.getCell(i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}}; lastRow.getCell(i).border={top:{style:'thin',color:{argb:BLUE}}}; }
-    ws.mergeCells(6+tiempoData.length,1,6+tiempoData.length,4);
-    lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
-    lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
-    lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
-    lastRow.height = 16;
-
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    const fileName = 'SPCD_Medico_Tiempo_Promedio_'+new Date().toISOString().slice(0,10)+'.xlsx';
-    a.download = fileName;
-    a.click(); URL.revokeObjectURL(url);
-
-    if (share && window.SpcdShare) {
-      window.SpcdShare.showShareDialog(blob, fileName, {
-        titulo: 'Tiempo Promedio de Informe',
-        periodo: new Date().toLocaleDateString('es-AR'),
-        cantidad: tiempoData.length,
-        modulo: 'medico',
-        tipoExport: 'tiempo'
-      });
+    const fileName = `SPCD_Medico_Tiempo_Promedio_${SpcdExcel.nowIsoDate()}.xlsx`;
+    await SpcdExcel.exportAndShare(wb, fileName, share ? {
+      titulo:'Tiempo Promedio de Informe',
+      periodo: SpcdExcel.dateAr(),
+      cantidad: tiempoData.length,
+      modulo:'medico', tipoExport:'tiempo'
+    } : null);
+  } catch(err) {
+    console.error('Export error:', err);
+    if (typeof spcdAlert === 'function') {
+      spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' });
+    } else {
+      alert('Error al exportar: ' + err.message);
     }
-  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
+  }
 }
 
 /* ── Menú de exportación ── */
@@ -1868,160 +1781,121 @@ function getExportSubtitle(groupFilter) {
 async function exportExcel(groupFilter, share) {
   if (!modalFiltered.length) { spcdAlert('No hay datos para exportar', { type:'alert', title:'Sin datos' }); return; }
   try {
+    await SpcdExcel.ready();
 
-  const isPend = (modalTipo === 'pendientes');
+    const isPend = (modalTipo === 'pendientes');
+    const allCols   = ['Turno Fecha','Turno N°','Paciente','Documento','Prestación','Equipo','Informe','Días Pendiente'];
+    const allShortH = ['Fecha','Turno N°','Paciente','DNI','Prestación','Equipo','Informe','Días'];
+    const allColW   = [11,12,24,12,30,16,10,8];
 
-  /* Columnas */
-  const allCols   = ['Turno Fecha','Turno N°','Paciente','Documento','Prestación','Equipo','Informe','Días Pendiente'];
-  const allShortH = ['Fecha','Turno N°','Paciente','DNI','Prestación','Equipo','Informe','Días'];
-  const allColW   = [10,10,22,12,28,14,8,6];
+    const excludeCols = isPend ? new Set([]) : new Set(['Equipo']);
+    const indices = [];
+    allCols.forEach((c,i) => { if (!excludeCols.has(c)) indices.push(i); });
+    const cols   = indices.map(i => allCols[i]);
+    const shortH = indices.map(i => allShortH[i]);
+    const colW   = indices.map(i => allColW[i]);
 
-  const excludeCols = isPend ? new Set([]) : new Set(['Equipo']);
-  const indices = [];
-  allCols.forEach((c,i) => { if (!excludeCols.has(c)) indices.push(i); });
-  const cols   = indices.map(i => allCols[i]);
-  const shortH = indices.map(i => allShortH[i]);
-  const colW   = indices.map(i => allColW[i]);
+    const dataRows = isPend ? getExportRows(groupFilter) : deduplicarPorTurno(modalFiltered);
+    const subtitleSuf = isPend ? getExportSubtitle(groupFilter) : null;
+    if (!dataRows.length) { spcdAlert('No hay datos en este grupo', { type:'alert', title:'Sin datos' }); return; }
 
-  const sede = localStorage.getItem('spcd_sede') || 'General';
-  const fecha = new Date().toLocaleDateString('es-AR');
-  const dataRows = isPend ? getExportRows(groupFilter) : deduplicarPorTurno(modalFiltered);
-  const subtitle = isPend ? getExportSubtitle(groupFilter) : null;
+    /* KPIs */
+    const hoy = new Date();
+    const conI = dataRows.filter(r => tieneInformeIF(r)).length;
+    const sinI = dataRows.length - conI;
+    const pendientes = isPend ? dataRows : dataRows.filter(r => !tieneInformeIF(r));
+    const dias = pendientes.map(r => {
+      const f = parseDate(r['Turno Fecha']);
+      return f ? Math.floor((hoy - f)/(86400000)) : 0;
+    });
+    const maxDias = dias.length ? Math.max(...dias) : 0;
+    const equipos = new Set(dataRows.map(r => r['Equipo']||'—'));
 
-  if (!dataRows.length) { spcdAlert('No hay datos en este grupo', { type:'alert', title:'Sin datos' }); return; }
+    const kpis = [
+      { label:'Registros',        value: dataRows.length.toLocaleString('es-AR'), tone:'cyan' },
+      { label:'Con informe',      value: conI,                                    tone:'emerald' },
+      { label:'Sin informe',      value: sinI, tone: sinI>0 ? 'rose' : 'cyan' },
+      isPend
+        ? { label:'Máx. días pend.', value: maxDias, tone: maxDias>=7 ? 'rose' : maxDias>=4 ? 'amber' : 'emerald' }
+        : { label:'Equipos',         value: equipos.size, tone:'silver' }
+    ];
 
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'SP Control Data';
-  const ws = wb.addWorksheet('Detalle');
+    const subtitle = `INFORME MÉDICO · ${modalTitle.toUpperCase()}` + (subtitleSuf ? ` · ${subtitleSuf.toUpperCase()}` : '');
+    const { wb, ws } = SpcdExcel.createBook({ subtitle, sheetName:'Detalle' });
 
-  const NAVY='0F172A', BLUED='1E3A8A', BLUE='3B82F6', WHITE='E2E8F0',
-        RED='F87171', AMBER='FBBF24', GREEN='55E78B', SURF='111827', CYAN='22DBAE';
-
-  // Logo
-  const logoB64 = generateLogoPNG();
-  const logoId = wb.addImage({base64:logoB64,extension:'png'});
-  ws.addImage(logoId,{tl:{col:0,row:0},ext:{width:220,height:46}});
-
-  // Fila 1: Logo + Título
-  ws.mergeCells(1,3,1,cols.length);
-  const t1 = ws.getCell(1,3);
-  t1.value = 'INFORME MÉDICO';
-  t1.font = {name:'Calibri',size:14,bold:true,color:{argb:WHITE}};
-  t1.alignment = {horizontal:'center',vertical:'middle'};
-  for(let i=1;i<=cols.length;i++) ws.getCell(1,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-  ws.getRow(1).height = 38;
-
-  // Fila 2: Línea decorativa
-  for(let i=1;i<=cols.length;i++) {
-    const dc = ws.getCell(2,i);
-    dc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    dc.border = {bottom:{style:'medium',color:{argb:BLUE}}};
-  }
-  ws.getRow(2).height = 4;
-
-  // Fila 3: Info
-  let infoText = `  Sede: ${sede}   |   ${fecha}   |   ${dataRows.length} registros   |   ${modalTitle.toUpperCase()}`;
-  if (subtitle) infoText += `   |   ${subtitle}`;
-  ws.mergeCells(3,1,3,cols.length);
-  const t2 = ws.getCell('A3');
-  t2.value = infoText;
-  t2.font = {name:'Calibri',size:9,bold:true,color:{argb:RED}};
-  t2.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUED}};
-  t2.alignment = {horizontal:'center',vertical:'middle'};
-  ws.getRow(3).height = 20;
-
-  // Fila 4: Espacio
-  for(let i=1;i<=cols.length;i++) ws.getCell(4,i).fill={type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-  ws.getRow(4).height = 4;
-
-  // Fila 5: Headers
-  const hr = ws.getRow(5);
-  shortH.forEach((h,i) => {
-    const cell = hr.getCell(i+1);
-    cell.value = h;
-    cell.font = {name:'Calibri',size:8,bold:true,color:{argb:WHITE}};
-    cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:BLUE}};
-    cell.alignment = {horizontal:'center',vertical:'middle'};
-    cell.border = {bottom:{style:'thin',color:{argb:CYAN}},top:{style:'thin',color:{argb:BLUE}}};
-  });
-  hr.height = 18;
-  colW.forEach((w,i) => { ws.getColumn(i+1).width = w; });
-
-  // Datos
-  const hoy = new Date();
-  const thinB = {style:'hair',color:{argb:'334155'}};
-  const borderStyle = {bottom:thinB,left:{style:'hair',color:{argb:'1E293B'}},right:{style:'hair',color:{argb:'1E293B'}}};
-  dataRows.forEach((r,idx) => {
-    const row = ws.getRow(6+idx);
-    const bg = idx%2===0 ? SURF : '1A2332';
-    const f = parseDate(r['Turno Fecha']);
-    const tieneInf = tieneInformeIF(r);
-    const dias = !tieneInf && f ? Math.floor((hoy-f)/(1000*60*60*24)) : null;
-
-    const valMap = {
-      'Turno Fecha':       r['Turno Fecha']||'',
-      'Turno N°':          r['Turno N°']||'',
-      'Paciente':          r['Paciente']||'',
-      'Documento':         r['Documento']||'',
-      'Prestación':        r['Prestación']||r['Prestacion']||'',
-      'Equipo':            r['Equipo']||'—',
-      'Informe':           tieneInf ? 'I/F' : (r['Informe']||'Sin I/F'),
-      'Días Pendiente':    dias !== null ? dias : ''
-    };
-
-    cols.forEach((c,i) => {
-      const cell = row.getCell(i+1);
-      cell.value = valMap[c];
-      let fontColor = WHITE;
-      if (c==='Informe' && !tieneInf) fontColor = RED;
-      if (c==='Días Pendiente' && isPend && dias !== null) {
-        if (dias >= 7)      fontColor = RED;
-        else if (dias >= 4) fontColor = AMBER;
-        else                fontColor = GREEN;
+    const h = SpcdExcel.buildHeader(ws, {
+      subtitle, totalCols: cols.length,
+      meta:{
+        modulo:'MEDICO',
+        sede: SpcdExcel.getCurrentSede(),
+        usuario: SpcdExcel.getCurrentUser(),
+        registros: dataRows.length,
+        extra: subtitleSuf ? `GRUPO: ${subtitleSuf.toUpperCase()}` : null
       }
-      cell.font = {name:'Calibri',size:8,color:{argb:fontColor}};
-      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-      cell.border = borderStyle;
-      cell.alignment = {vertical:'middle',shrinkToFit:true};
-      if (c==='Días Pendiente' && typeof valMap[c]==='number') cell.alignment.horizontal = 'center';
     });
-    row.height = 14;
-  });
+    const k = SpcdExcel.buildKPIs(ws, kpis, { startRow:h.nextRow, totalCols:cols.length });
+    const s = SpcdExcel.buildSection(ws, { startRow:k.nextRow, totalCols:cols.length, title:`DETALLE · ${modalTitle.toUpperCase()}` });
 
-  // Fila final: cierre
-  const lastRow = ws.getRow(6+dataRows.length);
-  for(let i=1;i<=cols.length;i++) {
-    const fc = lastRow.getCell(i);
-    fc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:NAVY}};
-    fc.border = {top:{style:'thin',color:{argb:BLUE}}};
-  }
-  ws.mergeCells(6+dataRows.length,1,6+dataRows.length,cols.length);
-  lastRow.getCell(1).value = `SP Control Data — ${new Date().toLocaleString('es-AR')}`;
-  lastRow.getCell(1).font = {name:'Calibri',size:7,italic:true,color:{argb:'64748B'}};
-  lastRow.getCell(1).alignment = {horizontal:'right',vertical:'middle'};
-  lastRow.height = 16;
+    const t = SpcdExcel.buildTable(ws, {
+      columns: shortH, widths: colW,
+      rows: dataRows.map(r => {
+        const f = parseDate(r['Turno Fecha']);
+        const tieneInf = tieneInformeIF(r);
+        const d = !tieneInf && f ? Math.floor((hoy - f)/86400000) : null;
+        const valMap = {
+          'Turno Fecha': r['Turno Fecha']||'',
+          'Turno N°':    r['Turno N°']||'',
+          'Paciente':    r['Paciente']||'',
+          'Documento':   r['Documento']||'',
+          'Prestación':  r['Prestación']||r['Prestacion']||'',
+          'Equipo':      r['Equipo']||'—',
+          'Informe':     tieneInf ? 'I/F' : (r['Informe']||'Sin I/F'),
+          'Días Pendiente': d !== null ? d : ''
+        };
+        return cols.map(c => valMap[c]);
+      }),
+      startRow: s.nextRow, totalCols: cols.length,
+      formatter: (cell, v, rd, idx, ci) => {
+        const c = cols[ci];
+        const r = dataRows[idx];
+        const tieneInf = tieneInformeIF(r);
+        if (c === 'Informe' && !tieneInf) SpcdExcel.Fmt.error(cell);
+        if (c === 'Días Pendiente' && isPend && typeof v === 'number') {
+          SpcdExcel.Fmt.center(cell);
+          if (v >= 7)      SpcdExcel.Fmt.error(cell);
+          else if (v >= 4) SpcdExcel.Fmt.warn(cell);
+          else             SpcdExcel.Fmt.success(cell);
+        }
+        if (c === 'Turno N°' || c === 'Documento') SpcdExcel.Fmt.center(cell);
+      }
+    });
+    const tot = SpcdExcel.buildTotals(ws, {
+      startRow:t.nextRow, totalCols:cols.length,
+      items:[
+        { label:'Registros', value: dataRows.length },
+        { label:'Con informe', value: conI },
+        sinI>0 ? { label:'Sin informe', value: sinI } : null,
+        isPend && maxDias>0 ? { label:'Máx. días', value: maxDias } : null
+      ].filter(Boolean)
+    });
+    SpcdExcel.buildFooter(ws, { startRow:tot.nextRow, totalCols:cols.length, hash:h.hash });
 
-  // Descargar
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url;
-  const suffix = isPend ? getExportLabel(groupFilter) : '';
-  const fileName = 'SPCD_Medico_'+modalTitle.replace(/\s+/g,'_')+suffix+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
-  a.download = fileName;
-  a.click(); URL.revokeObjectURL(url);
-
-  if (share && window.SpcdShare) {
-    window.SpcdShare.showShareDialog(blob, fileName, {
+    const suffix = isPend ? getExportLabel(groupFilter) : '';
+    const fileName = `SPCD_Medico_${modalTitle.replace(/\s+/g,'_')}${suffix}_${SpcdExcel.nowIsoDate()}.xlsx`;
+    await SpcdExcel.exportAndShare(wb, fileName, share ? {
       titulo: modalTitle + (suffix ? ' · ' + suffix.replace(/^_/,'').replace(/_/g,' ') : ''),
-      periodo: new Date().toLocaleDateString('es-AR'),
+      periodo: SpcdExcel.dateAr(),
       cantidad: dataRows.length,
-      modulo: 'medico',
-      tipoExport: modalTipo
-    });
+      modulo:'medico', tipoExport: modalTipo
+    } : null);
+  } catch(err) {
+    console.error('Export error:', err);
+    if (typeof spcdAlert === 'function') {
+      spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' });
+    } else {
+      alert('Error al exportar: ' + err.message);
+    }
   }
-
-  } catch(err) { console.error('Export error:', err); spcdAlert('Error al exportar: ' + err.message, { type:'error', title:'Error al exportar' }); }
 }
 
 </script>
@@ -2030,6 +1904,7 @@ async function exportExcel(groupFilter, share) {
 
 <script src="spcd-bg.js?v=2"></script>
 <script src="spcd-share.js?v=4"></script>
+<script src="spcd-excel-template.js?v=1"></script>
 <script src="chatbot.js?v=ai-2026-04-20-g"></script>
 </body>
 </html>
