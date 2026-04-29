@@ -144,6 +144,20 @@
   color: var(--muted);
   letter-spacing: 1px;
 }
+.topbar-crumbs a,
+.topbar-crumbs .crumb-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .15s ease, text-shadow .15s ease;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.topbar-crumbs a:hover,
+.topbar-crumbs .crumb-link:hover {
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(34, 219, 174, .35);
+}
 .topbar-crumbs .crumb-active {
   color: var(--accent);
   font-weight: 600;
